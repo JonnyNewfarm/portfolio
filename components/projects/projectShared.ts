@@ -41,8 +41,7 @@ export const GALLERY_GAP = "1svh";
 export const SMOOTH_SCROLL_SPEED = 0.011;
 export const WHEEL_MULTIPLIER = 0.92;
 
-/* ORIGINAL PROJECT IMAGE SHADERS */
-export const bendVertex = /* glsl */ `
+export const bendVertex =  `
 uniform float uTime, uHover, uWorldScale, uEdgeBend;
 uniform vec2 uPointer, uMotion, uImageSize;
 varying vec2 vUv;

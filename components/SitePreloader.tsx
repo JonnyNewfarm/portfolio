@@ -235,10 +235,6 @@ export default function SitePreloader({ children }: Props) {
       });
     };
 
-    // Critically: no repositioning during the counter.
-    // The two persistent labels are pinned to viewport edges in CSS,
-    // completely independently of the counter's width.
-    // Only update a LANDED label after a viewport resize.
     const syncFlights = () => {
       if (isMobile || phase !== "landed") return;
       for (const { label, target } of flights) {
@@ -313,13 +309,10 @@ export default function SitePreloader({ children }: Props) {
             targetOpacity: target.style.opacity,
             zIndex,
           });
-          // Keep the original's geometry and click area, without
-          // ever displaying a duplicate on top of the persistent label.
+
           target.style.opacity = "0";
         });
 
-        // Keep the real navbar link clickable and mirror its hover
-        // effect on the persistent visible label.
         const anchor = targets.nameTarget?.closest("a");
         const nameLabel = nameFlightRef.current;
         if (anchor && nameLabel && flights.some((f) => f.label === nameLabel)) {
@@ -502,8 +495,7 @@ export default function SitePreloader({ children }: Props) {
           phase = "landed";
           introCompleted = true;
           document.body.style.overflow = oldOverflow;
-          // Do not measure/reposition on the landing frame: the
-          // flight already has the correct destination coordinates.
+
           setFinished(true);
         },
       });
@@ -518,8 +510,7 @@ export default function SitePreloader({ children }: Props) {
         },
         0,
       );
-      // Same background as the hero: dissolve the cover instead of
-      // sliding a separate "preloader screen" away.
+
       exitTimeline.to(
         overlay,
         {
@@ -530,8 +521,6 @@ export default function SitePreloader({ children }: Props) {
         targets.mobile ? 0.12 : 0.96,
       );
 
-      // If a destination is missing, don't leave a label stranded
-      // at the center after the curtain moves away.
       const activeLabels = new Set(flights.map((flight) => flight.label));
       [nameFlightRef.current, portfolioFlightRef.current].forEach((label) => {
         if (label && !activeLabels.has(label)) {
@@ -543,8 +532,6 @@ export default function SitePreloader({ children }: Props) {
         const destination = target.getBoundingClientRect();
         const from = label.getBoundingClientRect();
 
-        // Translate on the compositor rather than animating left/top.
-        // The same fixed element stays mounted after landing.
         exitTimeline!.to(
           label,
           {
@@ -560,9 +547,6 @@ export default function SitePreloader({ children }: Props) {
         );
       });
 
-      // On desktop, wait until both labels are about 80% of the way
-      // to their corners before revealing the rest of the hero.
-      // Keep the original faster reveal timing on mobile.
       exitTimeline.call(
         () => revealTimeline?.play(),
         undefined,
@@ -675,8 +659,6 @@ export default function SitePreloader({ children }: Props) {
             willChange: "transform",
           }}
         >
-          {/* The counter is independently centered. No changing digit
-              can move either side label. */}
           <div
             ref={counterRef}
             className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap text-center    leading-none tracking-[-0.06em] tabular-nums font-extrabold text-[14px] xl:text-[15px]"
@@ -685,8 +667,6 @@ export default function SitePreloader({ children }: Props) {
               willChange: "transform,opacity",
             }}
           >
-            {/* An invisible width reservation ensures 1%, 9%, 10%,
-                99% and 100% all occupy exactly the same counter box. */}
             <span aria-hidden="true" className="invisible block">
               888%
             </span>
@@ -698,7 +678,6 @@ export default function SitePreloader({ children }: Props) {
             </span>
           </div>
 
-          {/* Mobile only: the labels do not fly on mobile. */}
           <span className="absolute left-[5vw] top-1/2 -translate-y-1/2 whitespace-nowrap  text-[clamp(8px,2.1vw,10px)] font-semibold uppercase leading-none tracking-[0.02em] md:hidden">
             JONAS NYGAARD
           </span>
@@ -708,9 +687,6 @@ export default function SitePreloader({ children }: Props) {
         </div>
       )}
 
-      {/* Persistent desktop labels. They START at the fixed viewport edges,
-          NOT inside the counter grid. They remain the same DOM nodes after
-          landing in the navbar and BottomMeta. */}
       {hadIntro && (
         <>
           <span

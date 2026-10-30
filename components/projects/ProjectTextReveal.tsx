@@ -39,8 +39,6 @@ function getTextElements(root: HTMLElement) {
     if (!element.textContent?.trim()) return false;
     if (element.closest("svg")) return false;
 
-    // Animate whole headings / paragraphs rather than
-    // animating their nested spans individually.
     if (element.matches(GROUP_SELECTOR)) {
       return !element.parentElement?.closest(GROUP_SELECTOR);
     }
@@ -49,8 +47,6 @@ function getTextElements(root: HTMLElement) {
       return false;
     }
 
-    // For metadata divs and spans, animate only
-    // the elements holding the actual text.
     const hasTextChildren = Array.from(element.children).some((child) =>
       child.textContent?.trim(),
     );

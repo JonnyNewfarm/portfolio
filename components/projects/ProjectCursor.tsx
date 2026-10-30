@@ -135,8 +135,6 @@ export default function ProjectCursor({
       y: number;
     } | null = null;
 
-    /* CURSOR REGION */
-
     const findMode = (x: number, y: number): CursorMode => {
       if (latest.current.focused) {
         return "close-focus";
@@ -168,13 +166,9 @@ export default function ProjectCursor({
       setMode(next);
     };
 
-    /* DOT FOLLOWS MOUSE IMMEDIATELY */
-
     const positionDot = (x: number, y: number) => {
       dot.style.transform = `translate3d(${x}px, ${y}px, 0)`;
     };
-
-    /* TEXT FOLLOWS WITH SUBTLE LAG */
 
     const animate = () => {
       const ease = reducedMotion ? 1 : 0.19;
@@ -194,8 +188,6 @@ export default function ProjectCursor({
 
       frame = window.requestAnimationFrame(animate);
     };
-
-    /* VISIBILITY */
 
     const show = () => {
       if (visible || !initialized || latest.current.disabled) {
@@ -224,8 +216,6 @@ export default function ProjectCursor({
         overwrite: true,
       });
     };
-
-    /* MOVEMENT */
 
     const updatePosition = (x: number, y: number) => {
       targetX = x;
@@ -260,8 +250,6 @@ export default function ProjectCursor({
       updatePosition(e.clientX, e.clientY);
     };
 
-    /* PRESS */
-
     const onPointerDown = (e: PointerEvent) => {
       if (!e.isPrimary || e.pointerType === "touch" || e.button !== 0) {
         return;
@@ -282,8 +270,6 @@ export default function ProjectCursor({
         overwrite: true,
       });
     };
-
-    /* RELEASE / ACTION */
 
     const onPointerUp = (e: PointerEvent) => {
       if (!e.isPrimary || e.pointerType === "touch" || e.button !== 0) {
@@ -442,8 +428,6 @@ export default function ProjectCursor({
         }
       `}</style>
 
-      {/* PRECISE POINTER */}
-
       <div
         ref={dotRef}
         aria-hidden="true"
@@ -473,8 +457,6 @@ export default function ProjectCursor({
           "
         />
       </div>
-
-      {/* SMOOTH FOLLOWING TYPOGRAPHY */}
 
       <div
         ref={followerRef}

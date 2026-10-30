@@ -23,10 +23,8 @@ import HomePointerEvents from "./HomePointerEvents";
 import GalleryThreeImages from "./GalleryThreeImages";
 import ProjectScene from "./ProjectScene";
 import ProjectCursor from "./ProjectCursor";
-/* ROUTING */
 const HISTORY_KEY = "__portfolioProjectOpened";
-// Give the gallery a brief chance to mount and its layout to settle.
-// Never wait indefinitely for all WebGL textures.
+
 const OPENING_WARMUP_MS = 170;
 function getProjectIndex(pathname: string) {
   const match = pathname.match(/^\/projects\/([^/]+)\/?$/);
@@ -42,24 +40,13 @@ function wasOpenedFromHomepage() {
 }
 export default function SelectedWork() {
   const router = useRouter();
-  /*
-  
-     * On "/" this is null.
-  
-     *
-  
-     * On a direct project URL, the server provides
-  
-     * the slug BEFORE SelectedWork renders.
-  
-     */
+
   const initialSlug = useInitialProjectSlug();
   const initialIndex = initialSlug
     ? PROJECTS.findIndex((project) => project.slug === initialSlug)
     : -1;
   const initialSelected = initialIndex >= 0 ? initialIndex : null;
   const directProject = initialSelected !== null;
-  /* STATES */
   const [selected, setSelected] = useState<number | null>(initialSelected);
   const [backdropActive, setBackdropActive] = useState(directProject);
   const [hovered, setHovered] = useState<string | null>(null);
@@ -68,32 +55,9 @@ export default function SelectedWork() {
   const [reversing, setReversing] = useState(false);
   const [galleryWebglReady, setGalleryWebglReady] = useState(false);
   const [isGalleryFocused, setIsGalleryFocused] = useState(false);
-  /* REFS */
   const hoveredRef = useRef<string | null>(null);
   const selectedRef = useRef<number | null>(initialSelected);
-  /*
-  
-     * IMPORTANT:
-  
-     *
-  
-     * Normal homepage:
-  
-     * progress = 0, handoff = 0
-  
-     *
-  
-     * Direct project route:
-  
-     * progress = 1, handoff = 1
-  
-     *
-  
-     * This skips the cover animation ONLY on
-  
-     * initial direct project navigation.
-  
-     */
+
   const progress = useRef({
     value: directProject ? 1 : 0,
   });
@@ -102,8 +66,7 @@ export default function SelectedWork() {
   });
   const tween = useRef<gsap.core.Tween | null>(null);
   const handoffTween = useRef<gsap.core.Tween | null>(null);
-  // The cover may move before gallery textures finish loading.
-  // Only the handoff waits for the gallery.
+
   const openingFinished = useRef(false);
   const galleryReadyRef = useRef(directProject);
   const focusTween = useRef<gsap.core.Tween | null>(null);
@@ -125,13 +88,11 @@ export default function SelectedWork() {
   const closing = useRef(false);
   const { ref: homeAnchor, rect: homeRect } = useHomeAnchor();
   const anchorReady = homeRect !== null;
-  /* HOVER */
   const onHover = useCallback((id: string | null) => {
     if (hoveredRef.current === id) return;
     hoveredRef.current = id;
     setHovered(id);
   }, []);
-  /* GALLERY READY / SAFE HANDOFF */
   const startHandoff = useCallback(() => {
     if (
       !openingFinished.current ||
@@ -158,7 +119,6 @@ export default function SelectedWork() {
     setGalleryWebglReady(true);
     startHandoff();
   }, [startHandoff]);
-  /* TITLE REVEAL */
   useLayoutEffect(() => {
     const allTitles = Array.from(titleNodes.current.values())
       .map((node) => node?.querySelector<HTMLElement>("[data-title-reveal]"))
@@ -206,7 +166,6 @@ export default function SelectedWork() {
       );
     }
   }, [selected, isGalleryFocused]);
-  /* RESET GALLERY FOCUS */
   const resetGalleryFocus = useCallback(() => {
     focusTween.current?.kill();
     focus.current.key = null;
@@ -214,7 +173,6 @@ export default function SelectedWork() {
     focusReturning.current = false;
     setIsGalleryFocused(false);
   }, []);
-  /* FOCUS IMAGE */
   const onFocusImage = useCallback(
     (key: string) => {
       if (!scrollAllowed || closing.current || focus.current.key) {
@@ -234,7 +192,6 @@ export default function SelectedWork() {
     },
     [scrollAllowed],
   );
-  /* UNFOCUS IMAGE */
   const onUnfocusImage = useCallback(() => {
     if (!focus.current.key || focusReturning.current) {
       return;
@@ -262,17 +219,7 @@ export default function SelectedWork() {
       onHover(null);
       resetGalleryFocus();
       closing.current = false;
-      /*
-  
-         * Preserve the ORIGINAL opening animation.
-  
-         *
-  
-         * The clicked cover still begins from
-  
-         * its exact homepage position.
-  
-         */
+
       progress.current.value = 0;
       handoff.current.value = 0;
       openingFinished.current = false;
@@ -283,21 +230,7 @@ export default function SelectedWork() {
       setReversing(false);
       selectedRef.current = index;
       setSelected(index);
-      /*
-  
-         * Update URL without remounting the scene.
-  
-         *
-  
-         * We use pushState when clicking a cover,
-  
-         * not router.push().
-  
-         *
-  
-         * This keeps the current R3F Canvas alive.
-  
-         */
+
       if (!fromHistory) {
         const path = getProjectPath(index);
         if (window.location.pathname !== path) {
@@ -313,7 +246,6 @@ export default function SelectedWork() {
     },
     [onHover, resetGalleryFocus],
   );
-  /* CLOSE PROJECT */
   const closeImage = useCallback(
     (fromHistory = false) => {
       if (selectedRef.current === null || closing.current) {
@@ -321,23 +253,7 @@ export default function SelectedWork() {
       }
       closing.current = true;
       openingFinished.current = false;
-      /*
-  
-         * When opening a direct project link,
-  
-         * replace the route AFTER the closing
-  
-         * animation has finished.
-  
-         *
-  
-         * When opening from the homepage,
-  
-         * browser Back restores the homepage URL
-  
-         * without recreating the R3F scene.
-  
-         */
+
       let navigateHomeAfterClose = false;
       if (!fromHistory) {
         const isProjectRoute = getProjectIndex(window.location.pathname) !== -1;
@@ -353,7 +269,6 @@ export default function SelectedWork() {
       handoffTween.current?.kill();
       resetGalleryFocus();
       setReturning(true);
-      /* REVERSE TRANSITION */
       const reverse = () => {
         handoffTween.current?.kill();
         handoffTween.current = gsap.to(handoff.current, {
@@ -378,19 +293,7 @@ export default function SelectedWork() {
                 setReturning(false);
                 setReversing(false);
                 closing.current = false;
-                /*
-            
-                             * Direct project link:
-            
-                             * navigate to the real homepage.
-            
-                             *
-            
-                             * Homepage click:
-            
-                             * no route navigation or remount.
-            
-                             */
+
                 if (navigateHomeAfterClose) {
                   router.replace("/");
                 }
@@ -407,37 +310,18 @@ export default function SelectedWork() {
     },
     [scrollAllowed, onHover, resetGalleryFocus, router],
   );
-  /* BROWSER BACK / FORWARD */
   useEffect(() => {
     if (!anchorReady) return;
     const handlePopState = () => {
       const routeIndex = getProjectIndex(window.location.pathname);
-      /*
-      
-             * Browser Back:
-      
-             * project -> homepage
-      
-             */
+
       if (routeIndex === -1) {
         if (selectedRef.current !== null && !closing.current) {
           closeImage(true);
         }
         return;
       }
-      /*
-      
-             * Browser Forward:
-      
-             * homepage -> project
-      
-             *
-      
-             * This runs the ORIGINAL opening
-      
-             * animation again.
-      
-             */
+
       if (selectedRef.current === null && !closing.current) {
         openImage(routeIndex, true);
       }
@@ -447,10 +331,8 @@ export default function SelectedWork() {
       window.removeEventListener("popstate", handlePopState);
     };
   }, [anchorReady, openImage, closeImage]);
-  /* COVER TO DETAILS TRANSITION */
   useLayoutEffect(() => {
     if (selected === null || closing.current) return;
-    // Direct project links already start at their destination.
     if (progress.current.value > 0 || tween.current?.isActive()) return;
     let frame = 0;
     let cancelled = false;
@@ -466,8 +348,7 @@ export default function SelectedWork() {
         frame = requestAnimationFrame(startWhenStable);
         return;
       }
-      // Avoid starting toward a position that is still changing while
-      // the gallery's layout mounts. This check costs only a few frames.
+
       if (
         previousRect &&
         Math.abs(rect.left - previousRect.left) < 0.5 &&
@@ -480,10 +361,7 @@ export default function SelectedWork() {
         stableFrames = 0;
       }
       previousRect = rect;
-      // A small warmup avoids launching the cover movement in the
-      // same frames as the gallery's React/WebGL initialization.
-      // If the gallery is ready earlier, start immediately once the
-      // target has held still for two frames.
+
       const warmedUp =
         galleryReadyRef.current ||
         performance.now() - mountedAt >= OPENING_WARMUP_MS;
@@ -491,8 +369,7 @@ export default function SelectedWork() {
         frame = requestAnimationFrame(startWhenStable);
         return;
       }
-      // Blur and cover start together. Handoff still waits until the
-      // image has arrived AND gallery WebGL is ready.
+
       setBackdropActive(true);
       tween.current = gsap.to(progress.current, {
         value: 1,
@@ -512,7 +389,6 @@ export default function SelectedWork() {
       cancelAnimationFrame(frame);
     };
   }, [selected, startHandoff]);
-  /* LOCK PAGE SCROLL */
   useEffect(() => {
     if (selected === null) return;
     const body = document.body;
@@ -538,7 +414,6 @@ export default function SelectedWork() {
       html.style.overflow = oldHTML;
     };
   }, [selected, scrollAllowed]);
-  /* ESCAPE */
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
       if (e.key !== "Escape" || selectedRef.current === null) {
@@ -555,7 +430,6 @@ export default function SelectedWork() {
       window.removeEventListener("keydown", key);
     };
   }, [closeImage, onUnfocusImage]);
-  /* CLEANUP */
   useEffect(
     () => () => {
       tween.current?.kill();
@@ -566,8 +440,6 @@ export default function SelectedWork() {
   );
   return (
     <>
-      {/* HOME ANCHOR */}
-
       <section
         aria-hidden="true"
         className="pointer-events-none absolute bottom-[7%] left-[3.1%]"
@@ -580,20 +452,14 @@ export default function SelectedWork() {
         />
       </section>
 
-      {/* SELECTED WORK LABEL */}
-
       <div className="pointer-events-none fixed bottom-[39svh] left-[3.8vw] z-[10] origin-left rotate-[10deg] whitespace-nowrap text-[13px] font-extrabold uppercase leading-none tracking-[0.01em]">
         MY WORK
       </div>
-
-      {/* BACKDROP */}
 
       <div
         aria-hidden="true"
         className={`pointer-events-none fixed inset-0 z-[60] bg-black/90 backdrop-blur-[14px] transition-opacity duration-[1000ms] ease-in-out ${backdropActive ? "opacity-100" : "opacity-0"}`}
       />
-
-      {/* THREE.JS GALLERY */}
 
       {selected !== null && (
         <GalleryThreeImages
@@ -609,8 +475,6 @@ export default function SelectedWork() {
         />
       )}
 
-      {/* PROJECT INFORMATION */}
-
       {selected !== null && (
         <ProjectDetailsInfo
           project={PROJECTS[selected]}
@@ -619,8 +483,6 @@ export default function SelectedWork() {
           ready={scrollAllowed}
         />
       )}
-
-      {/* NATIVE CLOSE FOR TOUCH / KEYBOARD */}
 
       {selected !== null && (
         <button
@@ -663,8 +525,6 @@ export default function SelectedWork() {
         </button>
       )}
 
-      {/* CUSTOM CURSOR */}
-
       {selected !== null && (
         <ProjectCursor
           focused={isGalleryFocused}
@@ -675,8 +535,6 @@ export default function SelectedWork() {
         />
       )}
 
-      {/* HOME POINTER EVENTS */}
-
       <HomePointerEvents
         selected={selected}
         hits={hits}
@@ -686,8 +544,6 @@ export default function SelectedWork() {
         onHover={onHover}
         onClickImage={openImage}
       />
-
-      {/* COVER CANVASES */}
 
       {homeRect &&
         PROJECTS.slice(0, 2).map((project, index) => (
@@ -744,8 +600,6 @@ export default function SelectedWork() {
             </Canvas>
           </div>
         ))}
-
-      {/* MOVING PROJECT TITLES */}
 
       <div
         aria-hidden="true"

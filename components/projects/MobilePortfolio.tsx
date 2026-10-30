@@ -9,10 +9,6 @@ import { PROJECTS } from "@/lib/projects";
 const LINKEDIN_URL = "https://www.linkedin.com/in/jonas-nygaard-0aa767366";
 const GITHUB_URL = "https://github.com/JonnyNewfarm";
 
-/* =========================================================
-   MOBILE HEADER
-========================================================= */
-
 function MobileHeader() {
   const [theme, setTheme] = useState<"light" | "dark">("light");
 
@@ -61,15 +57,10 @@ function MobileHeader() {
   );
 }
 
-/* =========================================================
-   MOBILE PORTRAIT
-========================================================= */
-
 function MobilePortrait() {
   return (
     <figure className="mt-10 flex justify-end">
       <div className="w-[min(48vw,230px)]">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/portrait.jpg"
           alt="Portrait of Jonas Nygaard"
@@ -89,16 +80,10 @@ function MobilePortrait() {
   );
 }
 
-/* =========================================================
-   MOBILE HOME
-========================================================= */
-
 function MobileHome() {
   return (
     <main className="min-h-svh overflow-x-hidden">
       <MobileHeader />
-
-      {/* HERO */}
 
       <section className="px-[5vw] pt-[clamp(80px,11svh,140px)]">
         <p className="mb-5 font-sans invisible text-[10px] font-medium uppercase tracking-[0.12em] opacity-60">
@@ -115,8 +100,6 @@ function MobileHome() {
 
         <MobilePortrait />
       </section>
-
-      {/* SELECTED WORK */}
 
       <section
         id="selected-work"
@@ -136,10 +119,7 @@ function MobileHome() {
               href={`/projects/${project.slug}`}
               className="block w-full cursor-pointer"
             >
-              {/* PROJECT COVER */}
-
               <div className="w-full overflow-hidden">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={project.images[0]}
                   alt={project.title}
@@ -151,8 +131,6 @@ function MobileHome() {
                   className="block h-auto w-full"
                 />
               </div>
-
-              {/* PROJECT INFORMATION */}
 
               <div className="mt-5 flex items-start justify-between gap-4">
                 <div className="min-w-0">
@@ -175,10 +153,6 @@ function MobileHome() {
           ))}
         </div>
       </section>
-
-      {/* ===================================================
-         FOOTER - SOCIAL LINKS ADDED
-      =================================================== */}
 
       <footer className="border-t border-current/20 px-[5vw] pb-8 pt-6 font-sans text-[10px] font-bold uppercase">
         <div className="flex items-center justify-between gap-4">
@@ -215,17 +189,11 @@ function MobileHome() {
   );
 }
 
-/* =========================================================
-   MOBILE PROJECT DETAILS
-========================================================= */
-
 function MobileProjectDetail({ index }: { index: number }) {
   const project = PROJECTS[index];
 
   return (
     <main className="min-h-svh bg-[#181716] text-[#e7e3dd]">
-      {/* BACK BUTTON */}
-
       <header className="flex items-center justify-between px-[5vw] pt-7">
         <Link
           href="/#selected-work"
@@ -239,8 +207,6 @@ function MobileProjectDetail({ index }: { index: number }) {
         </span>
       </header>
 
-      {/* PROJECT INTRO */}
-
       <section className="px-[5vw] pb-12 pt-20">
         <p className="mb-5 font-sans text-[10px] uppercase tracking-[0.13em] text-white/60">
           {project.category} / {project.year}
@@ -253,8 +219,6 @@ function MobileProjectDetail({ index }: { index: number }) {
         <p className="mt-10 max-w-[550px] font-sans text-[clamp(16px,4.2vw,20px)] font-medium leading-[1.35]">
           {project.intro}
         </p>
-
-        {/* CREDITS */}
 
         <div className="mt-12 grid grid-cols-3 gap-3 border-t border-white/20 pt-5">
           {[
@@ -283,8 +247,6 @@ function MobileProjectDetail({ index }: { index: number }) {
           ))}
         </div>
 
-        {/* DESCRIPTION */}
-
         <div className="mt-12 max-w-[550px]">
           <p className="mb-3 font-sans text-[10px] font-medium uppercase tracking-[0.1em]">
             THE PROJECT:
@@ -296,8 +258,6 @@ function MobileProjectDetail({ index }: { index: number }) {
         </div>
       </section>
 
-      {/* IMAGE GALLERY - NO FULLSCREEN */}
-
       <section
         aria-label={`${project.title} gallery`}
         className="flex flex-col gap-10 pb-16"
@@ -305,7 +265,6 @@ function MobileProjectDetail({ index }: { index: number }) {
         {project.images.map((src, imageIndex) => (
           <figure key={`${src}-${imageIndex}`} className="w-full">
             <div className="px-[5vw]">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={src}
                 alt={`${project.title}, image ${imageIndex + 1}`}
@@ -331,8 +290,6 @@ function MobileProjectDetail({ index }: { index: number }) {
         ))}
       </section>
 
-      {/* LIVE PROJECT */}
-
       {project.liveUrl.trim() && (
         <div className="border-t border-white/20 px-[5vw] py-10">
           <a
@@ -346,8 +303,6 @@ function MobileProjectDetail({ index }: { index: number }) {
         </div>
       )}
 
-      {/* BACK TO WORK */}
-
       <div className="px-[5vw] pb-12">
         <Link
           href="/#selected-work"
@@ -359,10 +314,6 @@ function MobileProjectDetail({ index }: { index: number }) {
     </main>
   );
 }
-
-/* =========================================================
-   MOBILE ROUTING
-========================================================= */
 
 export default function MobilePortfolio() {
   const pathname = usePathname();

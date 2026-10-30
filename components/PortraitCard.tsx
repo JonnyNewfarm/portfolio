@@ -18,10 +18,6 @@ import * as THREE from "three";
 
 import { bendVertex } from "@/components/projects/projectShared";
 
-/* =========================================================
-   SETTINGS
-========================================================= */
-
 const IMAGE = "/portrait.jpg";
 
 const PLANE_WIDTH = 3.4;
@@ -34,11 +30,7 @@ const HOVER_SPEED = 5.5;
 const MOVE_SPEED = 8.5;
 const BEND_SCALE = 0.72;
 
-/* =========================================================
-   PHOTO SHADER
-========================================================= */
-
-const portraitFragment = /* glsl */ `
+const portraitFragment = `
 uniform sampler2D uTexture;
 
 uniform vec2 uUvScale;
@@ -61,10 +53,6 @@ void main() {
   #include <colorspace_fragment>
 }
 `;
-
-/* =========================================================
-   THREE.JS PORTRAIT
-========================================================= */
 
 function PortraitPlane({
   active,
@@ -96,8 +84,6 @@ function PortraitPlane({
   const previousPosition = useRef(new THREE.Vector3());
 
   const projectedPoint = useRef(new THREE.Vector3());
-
-  /* SHADER UNIFORMS */
 
   const uniforms = useMemo(
     () => ({
@@ -144,8 +130,6 @@ function PortraitPlane({
     [imageTexture],
   );
 
-  /* IMAGE SETUP */
-
   useEffect(() => {
     imageTexture.colorSpace = THREE.SRGBColorSpace;
 
@@ -183,8 +167,6 @@ function PortraitPlane({
     invalidate();
   }, [imageTexture, uniforms, gl, invalidate]);
 
-  /* INVALIDATE SUPPORT */
-
   useEffect(() => {
     invalidateRef.current = invalidate;
 
@@ -198,8 +180,6 @@ function PortraitPlane({
   useEffect(() => {
     invalidate();
   }, [active, invalidate]);
-
-  /* PROJECT TEXT TO IMAGE CORNERS */
 
   const projectPosition = (
     group: THREE.Group,
@@ -220,16 +200,12 @@ function PortraitPlane({
     };
   };
 
-  /* ANIMATION */
-
   useFrame((state, rawDelta) => {
     const group = groupRef.current;
 
     if (!group) return;
 
     const dt = Math.min(rawDelta, 0.05);
-
-    /* HOVER */
 
     hoverRef.current = THREE.MathUtils.damp(
       hoverRef.current,
@@ -244,8 +220,6 @@ function PortraitPlane({
 
     const turn = THREE.MathUtils.smoothstep(hover, 0.3, 0.97);
 
-    /* MOUSE FOLLOW */
-
     pointerSmooth.current.x = THREE.MathUtils.damp(
       pointerSmooth.current.x,
       active ? pointer.current.x : 0,
@@ -259,8 +233,6 @@ function PortraitPlane({
       6,
       dt,
     );
-
-    /* Z MOVEMENT */
 
     group.position.z = THREE.MathUtils.damp(
       group.position.z,
@@ -283,8 +255,6 @@ function PortraitPlane({
       dt,
     );
 
-    /* ROTATION */
-
     group.rotation.y = THREE.MathUtils.damp(
       group.rotation.y,
       REST_YAW * (1 - turn),
@@ -306,13 +276,9 @@ function PortraitPlane({
       dt,
     );
 
-    /* SCALE */
-
     const scale = THREE.MathUtils.damp(group.scale.x, 1 - lift * 0.04, 9, dt);
 
     group.scale.setScalar(scale);
-
-    /* VELOCITY */
 
     const vx =
       (group.position.x - previousPosition.current.x) / Math.max(dt, 0.001);
@@ -336,8 +302,6 @@ function PortraitPlane({
       dt,
     );
 
-    /* ORIGINAL BEND SHADER */
-
     uniforms.uTime.value = state.clock.elapsedTime;
 
     uniforms.uHover.value = hover;
@@ -350,8 +314,6 @@ function PortraitPlane({
       (Math.abs(velocity.current.x) + Math.abs(velocity.current.y)) *
       0.13 *
       hover;
-
-    /* TEXT POSITIONS */
 
     group.updateWorldMatrix(true, false);
 
@@ -396,8 +358,6 @@ function PortraitPlane({
       ageRef.current.style.top = `${bottomRight.y - inset}px`;
     }
 
-    /* DEMAND RENDERING */
-
     const animating =
       active ||
       hover > 0.001 ||
@@ -430,10 +390,6 @@ function PortraitPlane({
   );
 }
 
-/* =========================================================
-   MAIN COMPONENT
-========================================================= */
-
 export default function PortraitCard() {
   const pathname = usePathname();
 
@@ -453,8 +409,6 @@ export default function PortraitCard() {
   const [tapped, setTapped] = useState(false);
 
   const active = !isProjectOpen && (hovered || tapped);
-
-  /* MOUSE TRACKING */
 
   useEffect(() => {
     if (isProjectOpen) return;
@@ -512,8 +466,6 @@ export default function PortraitCard() {
     };
   }, [isProjectOpen]);
 
-  /* RESET HOVER WHEN OPENING A PROJECT */
-
   useEffect(() => {
     if (!isProjectOpen) return;
 
@@ -523,15 +475,6 @@ export default function PortraitCard() {
     pointer.current.set(0, 0);
     invalidateRef.current?.();
   }, [isProjectOpen]);
-
-  /*
-   * IMPORTANT:
-   *
-   * Do not return null when the route changes.
-   *
-   * Keep the portrait Canvas mounted so it
-   * remains behind the project backdrop.
-   */
 
   return (
     <button
@@ -596,8 +539,6 @@ export default function PortraitCard() {
         ${isProjectOpen ? "pointer-events-none" : "cursor-pointer"}
       `}
     >
-      {/* THREE.JS PORTRAIT — ALWAYS MOUNTED */}
-
       <div className="pointer-events-none absolute inset-0">
         <Canvas
           frameloop="demand"
@@ -630,8 +571,6 @@ export default function PortraitCard() {
         </Canvas>
       </div>
 
-      {/* TOP LEFT — HOVER ONLY */}
-
       <span
         ref={labelRef}
         aria-hidden="true"
@@ -655,8 +594,6 @@ export default function PortraitCard() {
       >
         PORTRAIT / 2026
       </span>
-
-      {/* NAME / ROLE — HOVER ONLY */}
 
       <div
         ref={nameRef}
@@ -683,8 +620,6 @@ export default function PortraitCard() {
           DESIGNER / DEVELOPER
         </div>
       </div>
-
-      {/* AGE — HOVER ONLY */}
 
       <span
         ref={ageRef}

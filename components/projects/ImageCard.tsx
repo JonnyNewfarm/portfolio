@@ -23,7 +23,6 @@ import {
   type TitleMap,
 } from "./projectShared";
 
-/* EACH PROJECT REMAINS IN ITS OWN CANVAS, FOR REAL CSS BACKDROP BLUR */
 export default function ImageCard({
   index,
   selected,

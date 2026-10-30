@@ -71,8 +71,6 @@ export default function Navbar() {
           xl:text-[15px]
         "
       >
-        {/* NAME - ALWAYS VISIBLE */}
-
         <a
           href="/"
           className="shrink-0 whitespace-nowrap transition-opacity duration-300 hover:opacity-50"
@@ -80,22 +78,13 @@ export default function Navbar() {
           <IntroText>NAME / JONAS NYGAARD</IntroText>
         </a>
 
-        {/* ROLE - XL AND UP */}
-
         <span className="hidden shrink-0 whitespace-nowrap xl:inline-flex">
           <IntroText>DESIGNER / DEVELOPER</IntroText>
         </span>
 
-        {/* LOCATION - LG AND UP */}
-
         <span className="hidden shrink-0 whitespace-nowrap lg:inline-flex">
           <IntroText>LOCATION / OSLO, NORWAY</IntroText>
         </span>
-
-        {/* RIGHT GROUP
-            Below LG: grouped close together.
-            LG and above: separate flex items.
-        */}
 
         <div
           className="
@@ -108,8 +97,6 @@ export default function Navbar() {
             lg:contents
           "
         >
-          {/* LIGHT / DARK */}
-
           <div
             className="flex shrink-0 items-center whitespace-nowrap"
             aria-label="Color theme"
@@ -144,8 +131,6 @@ export default function Navbar() {
               </button>
             </IntroText>
           </div>
-
-          {/* SOCIALS */}
 
           <div className="flex shrink-0 items-center whitespace-nowrap">
             <IntroText>

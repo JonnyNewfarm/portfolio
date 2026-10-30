@@ -117,8 +117,6 @@ function contains(rect: ImageRect, x: number, y: number) {
   );
 }
 
-/* ONE REAL THREE.JS PLANE PER IMAGE */
-
 function GalleryPlane({
   src,
   index,
@@ -186,14 +184,6 @@ function GalleryPlane({
     };
   }, [geometry, gl, index, onImageLoaded, ratio, texture]);
 
-  /*
-   * Generate a blurred texture without changing
-   * the working MeshBasicMaterial.
-   *
-   * No HTML image is rendered.
-   * If generation fails, the original stays.
-   */
-
   useEffect(() => {
     const image = texture.image as
       | (CanvasImageSource & {
@@ -234,9 +224,7 @@ function GalleryPlane({
 
         blurredTexture.current = generated;
       }
-    } catch {
-      // Always keep the original texture available.
-    }
+    } catch {}
 
     return () => {
       blurredTexture.current = null;
@@ -279,11 +267,6 @@ function GalleryPlane({
 
     const material = node.material as THREE.MeshBasicMaterial;
 
-    /*
-     * Focused image stays sharp.
-     * Other images use the blurred texture.
-     */
-
     const behindFocus = focus.current.key !== null && !active;
 
     const desiredMap =
@@ -296,7 +279,6 @@ function GalleryPlane({
       material.needsUpdate = true;
     }
 
-    // Smoothly fade the background images.
     material.opacity =
       handoff.current.value *
       (behindFocus
@@ -306,11 +288,6 @@ function GalleryPlane({
             THREE.MathUtils.clamp(focus.current.value, 0, 1),
           )
         : 1);
-
-    /*
-     * Preserve the working bend animation
-     * on the original mesh.
-     */
 
     const bend = active ? Math.sin(Math.PI * t) * 0.8 : 0;
 
@@ -354,8 +331,6 @@ function GalleryPlane({
     </mesh>
   );
 }
-
-/* FIVE PLANES IN ONE CANVAS */
 
 function Planes({
   sources,
@@ -417,8 +392,6 @@ function Planes({
     </>
   );
 }
-
-/* MAIN GALLERY */
 
 export default function GalleryThreeImages({
   index,
@@ -500,8 +473,6 @@ export default function GalleryThreeImages({
     onReady();
   }, [onReady]);
 
-  /* RETURN TO FIRST IMAGE */
-
   useEffect(() => {
     scrollControl.current = {
       returnToFirst(done) {
@@ -550,8 +521,6 @@ export default function GalleryThreeImages({
       scrollControl.current = null;
     };
   }, [scrollControl, size]);
-
-  /* POINTER + INFINITE SCROLL */
 
   useEffect(() => {
     const down = (e: PointerEvent) => {
@@ -613,8 +582,6 @@ export default function GalleryThreeImages({
 
       const active = focus.current.key;
 
-      /* UNFOCUS */
-
       if (active !== null) {
         const i = Number(active);
         const r = rects[i];
@@ -641,8 +608,6 @@ export default function GalleryThreeImages({
 
         return;
       }
-
-      /* FOCUS */
 
       for (let i = 0; i < rects.length; i++) {
         if (contains(rects[i], e.clientX, e.clientY)) {
@@ -742,8 +707,6 @@ export default function GalleryThreeImages({
       className="pointer-events-none fixed inset-0 z-[82]"
       aria-hidden="true"
     >
-      {/* Position anchor only. No HTML image. */}
-
       <div
         ref={firstTarget}
         className="pointer-events-none absolute"

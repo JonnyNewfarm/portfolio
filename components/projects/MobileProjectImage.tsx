@@ -11,7 +11,7 @@ type Props = {
   className?: string;
 };
 
-const vertexShader = /* glsl */ `
+const vertexShader = `
 varying vec2 vUv;
 
 void main() {
@@ -24,7 +24,7 @@ void main() {
 }
 `;
 
-const fragmentShader = /* glsl */ `
+const fragmentShader = `
 uniform sampler2D uTexture;
 uniform vec2 uUvScale;
 uniform vec2 uUvOffset;
@@ -55,11 +55,6 @@ function ProjectPlane({ src, yaw }: { src: string; yaw: number }) {
   const imageAspect =
     image?.width && image?.height ? image.width / image.height : 0.8;
 
-  /*
-   * Leave some room around the plane
-   * for perspective distortion.
-   */
-
   const width = viewport.width * 0.87;
   const height = viewport.height * 0.85;
 
@@ -71,7 +66,6 @@ function ProjectPlane({ src, yaw }: { src: string; yaw: number }) {
     let offsetX = 0;
     let offsetY = 0;
 
-    // Cover crop, preserving image proportions.
     if (imageAspect > planeAspect) {
       scaleX = planeAspect / imageAspect;
       offsetX = (1 - scaleX) / 2;

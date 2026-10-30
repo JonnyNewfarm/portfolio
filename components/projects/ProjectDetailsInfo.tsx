@@ -37,10 +37,6 @@ export default function ProjectDetailsInfo({
   const descriptionSplitRef = useRef<SplitText | null>(null);
   const timelineRef = useRef<gsap.core.Timeline | null>(null);
 
-  /* =========================================================
-     SPLIT TEXT
-  ========================================================= */
-
   useLayoutEffect(() => {
     const intro = introRef.current;
     const description = descriptionRef.current;
@@ -72,10 +68,6 @@ export default function ProjectDetailsInfo({
       descriptionSplitRef.current = null;
     };
   }, [project.slug, project.intro, project.description]);
-
-  /* =========================================================
-     ANIMATIONS
-  ========================================================= */
 
   useLayoutEffect(() => {
     const root = rootRef.current;
@@ -114,10 +106,6 @@ export default function ProjectDetailsInfo({
 
     gsap.killTweensOf(animatedElements);
 
-    /* =====================================================
-       NOT READY
-    ===================================================== */
-
     if (!ready && !reversing) {
       gsap.set(root, {
         autoAlpha: 0,
@@ -142,10 +130,6 @@ export default function ProjectDetailsInfo({
       return;
     }
 
-    /* =====================================================
-       REVERSE
-    ===================================================== */
-
     if (reversing) {
       gsap.to([root, ...(link ? [link] : []), ...(divider ? [divider] : [])], {
         autoAlpha: 0,
@@ -158,10 +142,6 @@ export default function ProjectDetailsInfo({
       return;
     }
 
-    /* =====================================================
-       FOCUSED IMAGE
-    ===================================================== */
-
     if (focused) {
       gsap.to([root, ...(link ? [link] : []), ...(divider ? [divider] : [])], {
         autoAlpha: 0,
@@ -172,10 +152,6 @@ export default function ProjectDetailsInfo({
 
       return;
     }
-
-    /* =====================================================
-       REDUCED MOTION
-    ===================================================== */
 
     if (reducedMotion) {
       gsap.set(root, {
@@ -217,13 +193,6 @@ export default function ProjectDetailsInfo({
 
       return;
     }
-
-    /* =====================================================
-       INITIAL REVEAL STATES
-
-       Smaller movements than before.
-       No long or heavy transitions.
-    ===================================================== */
 
     gsap.set(introLines, {
       yPercent: 35,
@@ -267,13 +236,6 @@ export default function ProjectDetailsInfo({
       y: 0,
     });
 
-    /* =====================================================
-       REVEAL TIMELINE
-
-       All elements start almost together.
-       Total animation approximately 0.7–0.9s.
-    ===================================================== */
-
     const tl = gsap.timeline({
       defaults: {
         ease: "power2.out",
@@ -281,8 +243,6 @@ export default function ProjectDetailsInfo({
     });
 
     timelineRef.current = tl;
-
-    /* INTRO */
 
     tl.to(
       introLines,
@@ -295,8 +255,6 @@ export default function ProjectDetailsInfo({
       0,
     );
 
-    /* DEVELOPMENT / DESIGN / YEAR */
-
     tl.to(
       credits,
       {
@@ -307,8 +265,6 @@ export default function ProjectDetailsInfo({
       },
       0.03,
     );
-
-    /* THE PROJECT LABEL */
 
     if (descriptionLabel) {
       tl.to(
@@ -322,8 +278,6 @@ export default function ProjectDetailsInfo({
       );
     }
 
-    /* DESCRIPTION */
-
     tl.to(
       descriptionLines,
       {
@@ -334,8 +288,6 @@ export default function ProjectDetailsInfo({
       },
       0.06,
     );
-
-    /* DIVIDER */
 
     if (divider) {
       tl.to(
@@ -348,8 +300,6 @@ export default function ProjectDetailsInfo({
         0.08,
       );
     }
-
-    /* VIEW LIVE PROJECT + ARROW */
 
     if (link) {
       tl.to(
@@ -372,10 +322,6 @@ export default function ProjectDetailsInfo({
 
   return (
     <>
-      {/* ===================================================
-         PROJECT INFORMATION
-      =================================================== */}
-
       <aside
         ref={rootRef}
         aria-hidden={informationHidden}
@@ -395,8 +341,6 @@ export default function ProjectDetailsInfo({
           max-md:w-[43vw]
         "
       >
-        {/* INTRO */}
-
         <div className="pt-7 max-md:pt-2">
           <p
             ref={introRef}
@@ -415,8 +359,6 @@ export default function ProjectDetailsInfo({
             {sentenceCase(project.intro)}
           </p>
         </div>
-
-        {/* VERTICAL CREDITS */}
 
         <div
           className="
@@ -480,8 +422,6 @@ export default function ProjectDetailsInfo({
           ))}
         </div>
 
-        {/* DESCRIPTION */}
-
         <div
           className="
             absolute
@@ -530,10 +470,6 @@ export default function ProjectDetailsInfo({
         </div>
       </aside>
 
-      {/* ===================================================
-         DIVIDER
-      =================================================== */}
-
       <div
         ref={dividerRef}
         aria-hidden="true"
@@ -553,13 +489,6 @@ export default function ProjectDetailsInfo({
           max-md:w-[100vw]
         "
       />
-
-      {/* ===================================================
-         VIEW LIVE PROJECT
-
-         Only GSAP controls the fade-in.
-         No transition-opacity / hover:opacity conflict.
-      =================================================== */}
 
       {project.liveUrl.trim() && (
         <div

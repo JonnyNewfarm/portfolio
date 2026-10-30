@@ -4,7 +4,6 @@ import { useEffect, type MutableRefObject } from "react";
 import * as THREE from "three";
 import type { HitMap, CameraMap, PointerMap } from "./projectShared";
 
-/* HANDLE HOVER AND CLICKS OVER BOTH PERMANENT CANVASES */
 export default function HomePointerEvents({
   selected,
   hits,
@@ -84,7 +83,6 @@ export default function HomePointerEvents({
 
       onHover(hit?.id ?? null);
 
-      // Cursor pointer only when hovering a project
       document.body.style.cursor = hit ? "pointer" : originalCursor;
     };
 

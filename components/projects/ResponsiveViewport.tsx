@@ -27,8 +27,6 @@ export default function ResponsiveViewport({
     };
   }, []);
 
-  // Avoid mounting desktop WebGL canvases
-  // before the viewport has been checked.
   if (isMobile === null) {
     return <div className="min-h-svh" />;
   }
