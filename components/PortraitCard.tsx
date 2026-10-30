@@ -23,7 +23,8 @@ const IMAGE = "/portrait.jpg";
 const PLANE_WIDTH = 3.4;
 const PLANE_HEIGHT = 4.25;
 
-const REST_YAW = -0.58;
+const REST_YAW = -0.48;
+const REST_ROLL = THREE.MathUtils.degToRad(-2); // Negative = clockwise, positive = counterclockwise
 const HOVER_Z = 1.35;
 
 const HOVER_SPEED = 5.5;
@@ -271,7 +272,7 @@ function PortraitPlane({
 
     group.rotation.z = THREE.MathUtils.damp(
       group.rotation.z,
-      -pointerSmooth.current.x * 0.015 * turn,
+      REST_ROLL * (1 - turn) - pointerSmooth.current.x * 0.015 * turn,
       MOVE_SPEED,
       dt,
     );
@@ -363,6 +364,7 @@ function PortraitPlane({
       hover > 0.001 ||
       Math.abs(group.position.z) > 0.001 ||
       Math.abs(group.rotation.y - REST_YAW) > 0.001 ||
+      Math.abs(group.rotation.z - REST_ROLL) > 0.001 ||
       pointerSmooth.current.lengthSq() > 0.0001 ||
       velocity.current.lengthSq() > 0.0001;
 
@@ -372,7 +374,7 @@ function PortraitPlane({
   });
 
   return (
-    <group ref={groupRef} rotation={[0, REST_YAW, 0]}>
+    <group ref={groupRef} rotation={[0, REST_YAW, REST_ROLL]}>
       <mesh>
         <planeGeometry args={[PLANE_WIDTH, PLANE_HEIGHT, 40, 52]} />
 
@@ -542,7 +544,7 @@ export default function PortraitCard() {
       <div className="pointer-events-none absolute inset-0">
         <Canvas
           frameloop="demand"
-          dpr={[1, 1.25]}
+          dpr={[1, 1.5]}
           camera={{
             position: [0, 0, 8.5],
             fov: 35,
@@ -551,7 +553,7 @@ export default function PortraitCard() {
           }}
           gl={{
             alpha: true,
-            antialias: false,
+            antialias: true,
             powerPreference: "high-performance",
           }}
           style={{
