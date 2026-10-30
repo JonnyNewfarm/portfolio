@@ -1,0 +1,78 @@
+
+@import "tailwindcss";
+
+@font-face {
+  font-family: "Eudoxus Sans";
+  src: url("/fonts/EudoxusSans-ExtraLight.woff2") format("woff2");
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Eudoxus Sans";
+  src: url("/fonts/EudoxusSans-Light.woff2") format("woff2");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Eudoxus Sans";
+  src: url("/fonts/EudoxusSans-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Eudoxus Sans";
+  src: url("/fonts/EudoxusSans-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Eudoxus Sans";
+  src: url("/fonts/EudoxusSans-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Eudoxus Sans";
+  src: url("/fonts/EudoxusSans-ExtraBold.woff2") format("woff2");
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme inline {
+  --font-sans: "Eudoxus Sans", Arial, sans-serif;
+}
+
+:root {
+  --background: #ececec;
+  --foreground: #211f1e;
+}
+
+:root[data-theme="dark"] {
+  --background: #141413;
+  --foreground: #e7e3dd;
+}
+
+html,
+body {
+  min-height: 100%;
+  scrollbar-width: none;
+  scrollbar-gutter: 0;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "Eudoxus Sans", Arial, sans-serif;
+  font-weight: 700;
+}
