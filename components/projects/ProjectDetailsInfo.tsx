@@ -35,7 +35,6 @@ export default function ProjectDetailsInfo({
   const timelineRef = useRef<gsap.core.Timeline | null>(null);
 
   useLayoutEffect(() => {
-    // Desktop copy only; the mobile gallery retains its current layout.
     if (!window.matchMedia("(min-width: 768px)").matches) return;
 
     const intro = introRef.current;
@@ -221,7 +220,9 @@ export default function ProjectDetailsInfo({
       );
     }
 
-    return () => tl.kill();
+    return () => {
+      tl.kill();
+    };
   }, [project.slug, ready, focused, reversing]);
 
   const hidden = !ready || focused || reversing;
