@@ -42,13 +42,16 @@ type ImageRect = {
   height: number;
 };
 
+const galleryWidth = (size: Size) =>
+  size.width * (size.width < 768 ? 0.86 : 0.48);
+
 const positiveMod = (n: number, divisor: number) =>
   ((n % divisor) + divisor) % divisor;
 
 function cycleHeight(size: Size, ratios: number[]) {
   if (!ratios.length) return 1;
 
-  const width = size.width * (size.width < 768 ? 0.86 : 0.61);
+  const width = galleryWidth(size);
 
   const gap = size.height * 0.01;
 
@@ -63,12 +66,10 @@ function galleryRects(
   ratios: number[],
   scroll: number,
 ): ImageRect[] {
-  const width = size.width * (size.width < 768 ? 0.86 : 0.61);
-
-  const margin = size.width * (size.width < 768 ? 0.07 : 0.025);
+  const width = galleryWidth(size);
 
   const gap = size.height * 0.01;
-  const x = size.width - margin - width / 2;
+  const x = size.width / 2;
 
   const heights = ratios.map((ratio) => width / Math.max(0.2, ratio));
 
@@ -403,6 +404,7 @@ export default function GalleryThreeImages({
   onReady,
   onFocusImage,
   onUnfocusImage,
+  hitTestRef,
 }: {
   index: number;
   firstTarget: MutableRefObject<HTMLDivElement | null>;
@@ -413,6 +415,7 @@ export default function GalleryThreeImages({
   onReady: () => void;
   onFocusImage: (key: string) => void;
   onUnfocusImage: () => void;
+  hitTestRef: MutableRefObject<((x: number, y: number) => boolean) | null>;
 }) {
   const sources = useMemo(() => PROJECTS[index].images.slice(0, 5), [index]);
 
@@ -521,6 +524,19 @@ export default function GalleryThreeImages({
       scrollControl.current = null;
     };
   }, [scrollControl, size]);
+
+  // Match cursor FOCUS to visible WebGL images, not empty screen space.
+  useEffect(() => {
+    hitTestRef.current = (x: number, y: number) => {
+      if (!interactive || focus.current.key !== null) return false;
+      return galleryRects(size, ratios.current, scroll.current.current).some(
+        (rect) => contains(rect, x, y),
+      );
+    };
+    return () => {
+      hitTestRef.current = null;
+    };
+  }, [hitTestRef, interactive, focus, size]);
 
   useEffect(() => {
     const down = (e: PointerEvent) => {
@@ -696,9 +712,7 @@ export default function GalleryThreeImages({
     };
   }, [interactive, focus, onFocusImage, onUnfocusImage, size]);
 
-  const width = size.width * (size.width < 768 ? 0.86 : 0.61);
-
-  const margin = size.width * (size.width < 768 ? 0.07 : 0.025);
+  const width = galleryWidth(size);
 
   const height = width / firstRatio;
 
@@ -711,7 +725,7 @@ export default function GalleryThreeImages({
         ref={firstTarget}
         className="pointer-events-none absolute"
         style={{
-          right: margin,
+          left: size.width / 2 - width / 2,
           top: size.height / 2 - height / 2,
           width,
           height,

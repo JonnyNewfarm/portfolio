@@ -1,7 +1,7 @@
 "use client";
 
 import gsap from "gsap";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MutableRefObject } from "react";
 
 type CursorMode = "close-project" | "website" | "focus" | "close-focus";
 
@@ -9,6 +9,7 @@ type Props = {
   focused: boolean;
   disabled: boolean;
   websiteUrl: string;
+  isOverImage: MutableRefObject<((x: number, y: number) => boolean) | null>;
   onCloseProject: () => void;
   onCloseFocus: () => void;
 };
@@ -24,6 +25,7 @@ export default function ProjectCursor({
   focused,
   disabled,
   websiteUrl,
+  isOverImage,
   onCloseProject,
   onCloseFocus,
 }: Props) {
@@ -39,6 +41,7 @@ export default function ProjectCursor({
     focused,
     disabled,
     websiteUrl,
+    isOverImage,
     onCloseProject,
     onCloseFocus,
   });
@@ -47,6 +50,7 @@ export default function ProjectCursor({
     focused,
     disabled,
     websiteUrl,
+    isOverImage,
     onCloseProject,
     onCloseFocus,
   };
@@ -140,21 +144,29 @@ export default function ProjectCursor({
         return "close-focus";
       }
 
-      const darkRight =
-        window.innerWidth < 768 ? window.innerWidth : window.innerWidth * 0.365;
+      // In the bottom section of the left panel (below the divider),
+      // the cursor becomes VIEW WEBSITE and clicking opens the live site.
+      // Divider: bottom-[20svh]; left panel: w-[26vw].
+      const belowLiveDivider =
+        window.innerWidth >= 768 &&
+        x < window.innerWidth * 0.26 &&
+        y >= window.innerHeight * 0.8;
 
-      const dividerY =
-        window.innerHeight * (window.innerWidth < 768 ? 0.82 : 0.79);
-
-      if (x < darkRight) {
-        if (y >= dividerY && latest.current.websiteUrl.trim()) {
-          return "website";
-        }
-
-        return "close-project";
+      const element = document.elementFromPoint(x, y);
+      if (
+        latest.current.websiteUrl.trim() &&
+        (belowLiveDivider || element?.closest("[data-project-live-link]"))
+      ) {
+        return "website";
       }
 
-      return "focus";
+      // Both outside columns close the project. Only a real gallery
+      // image displays FOCUS. This stays accurate while scrolling.
+      if (latest.current.isOverImage.current?.(x, y)) {
+        return "focus";
+      }
+
+      return "close-project";
     };
 
     const updateMode = (x: number, y: number) => {
@@ -409,21 +421,11 @@ export default function ProjectCursor({
           }
 
           html.portfolio-cursor-active
-          [data-project-native-close],
-          html.portfolio-cursor-active
-          .portfolio-cursor-native-website {
-            opacity: 0 !important;
-            pointer-events: none !important;
-          }
-
-          html.portfolio-cursor-active
           [data-project-native-close]:focus-visible,
           html.portfolio-cursor-active
-          .portfolio-cursor-native-website:focus-visible {
-            opacity: 1 !important;
-            pointer-events: auto !important;
+          [data-project-live-link]:focus-visible {
             outline: 1px solid #ece9e4;
-            outline-offset: 6px;
+            outline-offset: 5px;
           }
         }
       `}</style>

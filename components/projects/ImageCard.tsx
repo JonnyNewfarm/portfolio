@@ -318,11 +318,11 @@ export default function ImageCard({
       const detailX = size.width * (small ? 0.05 : 0.035);
       const detailY = size.height * (small ? 0.12 : 0.145);
       const detailFont = THREE.MathUtils.clamp(
-        size.width * (small ? 0.068 : 0.022),
+        size.width * (small ? 0.068 : 0.02),
         25,
         64,
       );
-      const detailWidth = size.width * (small ? 0.76 : 0.29);
+      const detailWidth = size.width * (small ? 0.76 : 0.22);
       title.style.left = `${THREE.MathUtils.lerp(fromX, detailX, t)}px`;
       title.style.top = `${THREE.MathUtils.lerp(fromY, detailY, t)}px`;
       title.style.fontSize = `${THREE.MathUtils.lerp(fromFont, detailFont, t)}px`;

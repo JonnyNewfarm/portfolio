@@ -292,7 +292,7 @@ export default function SitePreloader({ children }: Props) {
           {
             label: nameFlightRef.current,
             target: targets.nameTarget,
-            zIndex: 100,
+            zIndex: 20,
           },
           {
             label: portfolioFlightRef.current,
