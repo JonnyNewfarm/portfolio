@@ -191,27 +191,77 @@ function MobileHome() {
 
 function MobileProjectDetail({ index }: { index: number }) {
   const project = PROJECTS[index];
+  const [navVisible, setNavVisible] = useState(true);
+
+  useEffect(() => {
+    let lastScrollY = Math.max(0, window.scrollY);
+    let frame = 0;
+
+    const onScroll = () => {
+      if (frame) return;
+
+      frame = window.requestAnimationFrame(() => {
+        const scrollY = Math.max(0, window.scrollY);
+        const direction = scrollY - lastScrollY;
+
+        if (scrollY < 80) {
+          setNavVisible(true);
+        } else if (Math.abs(direction) > 3) {
+          setNavVisible(direction < 0);
+        }
+
+        lastScrollY = scrollY;
+        frame = 0;
+      });
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.cancelAnimationFrame(frame);
+    };
+  }, [index]);
 
   return (
     <main className="min-h-svh bg-[#181716] text-[#e7e3dd]">
-      <header className="flex items-center justify-between px-[5vw] pt-7">
+      {/* Hides when scrolling down; returns when scrolling up. */}
+      <header
+        className="fixed inset-x-0 top-0 z-50 flex items-center justify-between gap-4 bg-[#181716]/60 px-[5vw] pb-5 pt-[calc(env(safe-area-inset-top)+1.25rem)] backdrop-blur-md transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]"
+        style={{
+          transform: navVisible
+            ? "translate3d(0,0,0)"
+            : "translate3d(0,-110%,0)",
+          pointerEvents: navVisible ? "auto" : "none",
+        }}
+      >
         <Link
           href="/#selected-work"
-          className="font-bueno text-[13px] font-bold uppercase"
+          aria-label="Back to selected work"
+          className="inline-flex items-center gap-2 font-bueno text-[13px] font-bold uppercase leading-none transition-opacity hover:opacity-60"
         >
-          ← BACK
+          <svg
+            aria-hidden="true"
+            width="19"
+            height="19"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M19 12H5m0 0 6-6m-6 6 6 6" />
+          </svg>
+          BACK
         </Link>
 
-        <span className="font-sans text-[10px] font-medium uppercase tracking-[0.12em]">
-          PROJECT / {String(index + 1).padStart(2, "0")}
+        <span className="whitespace-nowrap font-sans text-[10px] font-medium uppercase tracking-[0.12em]">
+          PORTFOLIO / {String(index + 1).padStart(2, "0")}
         </span>
       </header>
 
-      <section className="px-[5vw] pb-12 pt-20">
-        <p className="mb-5 font-sans text-[10px] uppercase tracking-[0.13em] text-white/60">
-          {project.category} / {project.year}
-        </p>
-
+      <section className="px-[5vw] pb-12 pt-[clamp(130px,17svh,185px)]">
         <h1 className="max-w-[90vw] font-bueno text-[clamp(40px,12vw,76px)] font-bold uppercase leading-[0.95] tracking-[-0.025em]">
           {project.title}
         </h1>
@@ -237,7 +287,7 @@ function MobileProjectDetail({ index }: { index: number }) {
           ].map((item) => (
             <div key={item.label} className="min-w-0">
               <p className="font-sans text-[9px] uppercase tracking-[0.08em] text-white/50">
-                {item.label}
+                {item.label}:
               </p>
 
               <p className="mt-2 font-sans text-[11px] leading-[1.4]">
@@ -291,26 +341,31 @@ function MobileProjectDetail({ index }: { index: number }) {
       </section>
 
       {project.liveUrl.trim() && (
-        <div className="border-t border-white/20 px-[5vw] py-10">
+        <footer className="border-t border-white/20 px-[5vw] pb-[calc(env(safe-area-inset-bottom)+2.5rem)] pt-9">
           <a
             href={project.liveUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="block font-bueno text-[20px] font-bold uppercase"
+            className="group flex w-full items-center justify-between gap-4 font-bueno text-[clamp(20px,5.7vw,28px)] font-bold uppercase leading-none transition-opacity hover:opacity-65"
           >
-            VIEW LIVE PROJECT
+            <span>VIEW LIVE PROJECT</span>
+            <svg
+              aria-hidden="true"
+              width="27"
+              height="27"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="shrink-0 transition-transform duration-300 group-hover:-translate-y-1 group-hover:translate-x-1"
+            >
+              <path d="M5 19 19 5M8 5h11v11" />
+            </svg>
           </a>
-        </div>
+        </footer>
       )}
-
-      <div className="px-[5vw] pb-12">
-        <Link
-          href="/#selected-work"
-          className="font-sans text-[12px] font-medium uppercase text-white/70"
-        >
-          ← BACK TO SELECTED WORK
-        </Link>
-      </div>
     </main>
   );
 }
