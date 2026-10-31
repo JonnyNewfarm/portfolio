@@ -14,6 +14,13 @@ type Props = {
   onCloseFocus: () => void;
 };
 
+const FOLLOW_SPEED = 10;
+const MAX_TILT_DEG = 2.5;
+const MAX_EXTRA_SPACING_EM = 0.35;
+const SPREAD_AT_SPEED = 15;
+const KINETIC_DAMPING = 11;
+const BASE_SPACING_EM = 0.11;
+
 const LABELS: Record<CursorMode, string> = {
   "close-project": "CLOSE",
   website: "VIEW WEBSITE",
@@ -29,8 +36,9 @@ export default function ProjectCursor({
   onCloseProject,
   onCloseFocus,
 }: Props) {
-  const dotRef = useRef<HTMLDivElement>(null);
-  const followerRef = useRef<HTMLDivElement>(null);
+  const cursorRef = useRef<HTMLDivElement>(null);
+  const kineticRef = useRef<HTMLDivElement>(null);
+  const pressRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLSpanElement>(null);
 
   const [mode, setMode] = useState<CursorMode>("focus");
@@ -59,8 +67,6 @@ export default function ProjectCursor({
     refreshRef.current?.();
   }, [focused, disabled]);
 
-  /* SMOOTH TEXT CHANGE */
-
   useEffect(() => {
     const text = textRef.current;
     if (!text) return;
@@ -86,10 +92,12 @@ export default function ProjectCursor({
   }, [mode]);
 
   useEffect(() => {
-    const dot = dotRef.current;
-    const follower = followerRef.current;
+    const cursor = cursorRef.current;
+    const kinetic = kineticRef.current;
+    const press = pressRef.current;
+    const text = textRef.current;
 
-    if (!dot || !follower) return;
+    if (!cursor || !kinetic || !press || !text) return;
 
     const media = window.matchMedia("(hover: hover) and (pointer: fine)");
 
@@ -116,20 +124,19 @@ export default function ProjectCursor({
       anchor.classList.add("portfolio-cursor-native-website");
     });
 
-    gsap.set([dot, follower], {
-      autoAlpha: 0,
-    });
+    gsap.set(cursor, { autoAlpha: 0 });
 
     let initialized = false;
     let visible = false;
 
     let targetX = 0;
     let targetY = 0;
-
     let currentX = 0;
     let currentY = 0;
-
-    let frame = 0;
+    let tilt = 0;
+    let spacing = 0;
+    let animationFrame = 0;
+    let previousFrameTime = 0;
 
     let currentMode: CursorMode | null = null;
 
@@ -144,9 +151,6 @@ export default function ProjectCursor({
         return "close-focus";
       }
 
-      // In the bottom section of the left panel (below the divider),
-      // the cursor becomes VIEW WEBSITE and clicking opens the live site.
-      // Divider: bottom-[20svh]; left panel: w-[26vw].
       const belowLiveDivider =
         window.innerWidth >= 768 &&
         x < window.innerWidth * 0.26 &&
@@ -160,8 +164,6 @@ export default function ProjectCursor({
         return "website";
       }
 
-      // Both outside columns close the project. Only a real gallery
-      // image displays FOCUS. This stays accurate while scrolling.
       if (latest.current.isOverImage.current?.(x, y)) {
         return "focus";
       }
@@ -178,27 +180,70 @@ export default function ProjectCursor({
       setMode(next);
     };
 
-    const positionDot = (x: number, y: number) => {
-      dot.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+    const positionCursor = (x: number, y: number) => {
+      cursor.style.transform = `translate3d(${x}px, ${y}px, 0)`;
     };
 
-    const animate = () => {
-      const ease = reducedMotion ? 1 : 0.19;
+    const animateCursor = (time: number) => {
+      animationFrame = 0;
 
-      currentX += (targetX - currentX) * ease;
-      currentY += (targetY - currentY) * ease;
+      const delta = previousFrameTime
+        ? Math.max(1, Math.min(50, time - previousFrameTime))
+        : 1000 / 60;
+      previousFrameTime = time;
+      const seconds = delta / 1000;
 
-      if (Math.abs(targetX - currentX) < 0.05) {
+      const follow = reducedMotion ? 1 : 1 - Math.exp(-FOLLOW_SPEED * seconds);
+
+      const lastX = currentX;
+      const lastY = currentY;
+      currentX += (targetX - currentX) * follow;
+      currentY += (targetY - currentY) * follow;
+
+      const motionX = ((currentX - lastX) * (1 / 60)) / seconds;
+      const motionY = ((currentY - lastY) * (1 / 60)) / seconds;
+      const speed = Math.hypot(motionX, motionY);
+      const strength = reducedMotion ? 0 : Math.min(speed / SPREAD_AT_SPEED, 1);
+
+      const desiredTilt = reducedMotion
+        ? 0
+        : Math.max(
+            -MAX_TILT_DEG,
+            Math.min(MAX_TILT_DEG, motionX * 0.22 + motionY * 0.04),
+          );
+      const desiredSpacing = MAX_EXTRA_SPACING_EM * strength;
+
+      const damping = reducedMotion
+        ? 1
+        : 1 - Math.exp(-KINETIC_DAMPING * seconds);
+
+      tilt += (desiredTilt - tilt) * damping;
+      spacing += (desiredSpacing - spacing) * damping;
+
+      const positionSettled =
+        Math.abs(targetX - currentX) < 0.1 &&
+        Math.abs(targetY - currentY) < 0.1;
+      const kineticSettled =
+        Math.abs(tilt) < 0.015 && Math.abs(spacing) < 0.0003;
+
+      if (positionSettled) {
         currentX = targetX;
-      }
-
-      if (Math.abs(targetY - currentY) < 0.05) {
         currentY = targetY;
       }
+      if (kineticSettled && speed < 0.05) {
+        tilt = 0;
+        spacing = 0;
+      }
 
-      follower.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
+      positionCursor(currentX, currentY);
+      kinetic.style.transform = `rotate(${tilt}deg)`;
+      text.style.letterSpacing = `${BASE_SPACING_EM + spacing}em`;
 
-      frame = window.requestAnimationFrame(animate);
+      if (!positionSettled || !kineticSettled) {
+        animationFrame = window.requestAnimationFrame(animateCursor);
+      } else {
+        previousFrameTime = 0;
+      }
     };
 
     const show = () => {
@@ -208,7 +253,7 @@ export default function ProjectCursor({
 
       visible = true;
 
-      gsap.to([dot, follower], {
+      gsap.to(cursor, {
         autoAlpha: 1,
         duration: reducedMotion ? 0 : 0.3,
         ease: "power2.out",
@@ -221,7 +266,7 @@ export default function ProjectCursor({
 
       visible = false;
 
-      gsap.to([dot, follower], {
+      gsap.to(cursor, {
         autoAlpha: 0,
         duration: reducedMotion ? 0 : 0.2,
         ease: "power2.out",
@@ -233,17 +278,15 @@ export default function ProjectCursor({
       targetX = x;
       targetY = y;
 
-      positionDot(x, y);
-
       if (!initialized) {
-        initialized = true;
-
         currentX = x;
         currentY = y;
+        positionCursor(x, y);
+        initialized = true;
+      }
 
-        follower.style.transform = `translate3d(${x}px, ${y}px, 0)`;
-
-        frame = window.requestAnimationFrame(animate);
+      if (!animationFrame) {
+        animationFrame = window.requestAnimationFrame(animateCursor);
       }
 
       updateMode(x, y);
@@ -275,9 +318,9 @@ export default function ProjectCursor({
         y: e.clientY,
       };
 
-      gsap.to(dot.firstElementChild, {
-        scale: 1.8,
-        duration: 0.18,
+      gsap.to(press, {
+        scale: 0.82,
+        duration: reducedMotion ? 0 : 0.14,
         ease: "power2.out",
         overwrite: true,
       });
@@ -288,9 +331,9 @@ export default function ProjectCursor({
         return;
       }
 
-      gsap.to(dot.firstElementChild, {
+      gsap.to(press, {
         scale: 1,
-        duration: 0.35,
+        duration: reducedMotion ? 0 : 0.33,
         ease: "expo.out",
         overwrite: true,
       });
@@ -335,7 +378,6 @@ export default function ProjectCursor({
           break;
 
         case "focus":
-          // GalleryThreeImages handles image focus.
           break;
       }
     };
@@ -343,9 +385,9 @@ export default function ProjectCursor({
     const onCancel = () => {
       downPosition = null;
 
-      gsap.to(dot.firstElementChild, {
+      gsap.to(press, {
         scale: 1,
-        duration: 0.2,
+        duration: reducedMotion ? 0 : 0.2,
         overwrite: true,
       });
     };
@@ -382,8 +424,7 @@ export default function ProjectCursor({
 
     return () => {
       refreshRef.current = null;
-
-      window.cancelAnimationFrame(frame);
+      window.cancelAnimationFrame(animationFrame);
 
       window.removeEventListener("pointermove", onPointerMove, true);
 
@@ -399,9 +440,8 @@ export default function ProjectCursor({
 
       window.removeEventListener("blur", hide);
 
-      gsap.killTweensOf(dot);
-      gsap.killTweensOf(follower);
-      gsap.killTweensOf(dot.firstElementChild);
+      gsap.killTweensOf(cursor);
+      gsap.killTweensOf(press);
 
       websiteLinks.forEach((anchor) => {
         anchor.classList.remove("portfolio-cursor-native-website");
@@ -431,75 +471,25 @@ export default function ProjectCursor({
       `}</style>
 
       <div
-        ref={dotRef}
+        ref={cursorRef}
         aria-hidden="true"
-        className="
-          pointer-events-none
-          fixed
-          left-0
-          top-0
-          z-[9999]
-          mix-blend-difference
-          opacity-0
-        "
+        className="pointer-events-none fixed left-0 top-0 z-[9999] mix-blend-difference opacity-0"
         style={{
           transform: "translate3d(-200px,-200px,0)",
+          willChange: "transform, opacity",
         }}
       >
-        <div
-          className="
-            absolute
-            left-0
-            top-0
-            h-[5px]
-            w-[5px]
-            -translate-x-1/2
-            -translate-y-1/2
-            bg-white
-          "
-        />
-      </div>
-
-      <div
-        ref={followerRef}
-        aria-hidden="true"
-        className="
-          pointer-events-none
-          fixed
-          left-0
-          top-0
-          z-[9999]
-          mix-blend-difference
-          opacity-0
-        "
-        style={{
-          transform: "translate3d(-200px,-200px,0)",
-        }}
-      >
-        <div
-          className="
-            absolute
-            left-[18px]
-            top-[12px]
-            whitespace-nowrap
-          "
-        >
-          <span
-            ref={textRef}
-            className="
-              block
-              font-sans
-              text-[12px]
-              font-semibold
-              uppercase
-              leading-none
-              tracking-[0.11em]
-              text-white
-              will-change-transform
-            "
-          >
-            {LABELS[mode]}
-          </span>
+        <div className="absolute left-0 top-0 -translate-x-1/2 -translate-y-1/2">
+          <div ref={kineticRef} className="origin-center will-change-transform">
+            <div ref={pressRef} className="origin-center will-change-transform">
+              <span
+                ref={textRef}
+                className="block whitespace-nowrap font-sans text-[14px] font-semibold uppercase leading-none tracking-[0.11em] text-white will-change-transform"
+              >
+                {LABELS[mode]}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </>
