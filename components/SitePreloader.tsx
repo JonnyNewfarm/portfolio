@@ -677,13 +677,6 @@ export default function SitePreloader({ children }: Props) {
               1%
             </span>
           </div>
-
-          <span className="absolute left-[5vw] top-1/2 -translate-y-1/2 whitespace-nowrap  text-[clamp(8px,2.1vw,10px)] font-semibold uppercase leading-none tracking-[0.02em] md:hidden">
-            JONAS NYGAARD
-          </span>
-          <span className="absolute right-[5vw] top-1/2 -translate-y-1/2 whitespace-nowrap  text-[clamp(8px,2.1vw,10px)] font-semibold uppercase leading-none tracking-[0.02em] md:hidden">
-            PORTFOLIO / 2026
-          </span>
         </div>
       )}
 
