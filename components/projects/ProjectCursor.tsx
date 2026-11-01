@@ -24,7 +24,7 @@ const BASE_SPACING_EM = 0.11;
 const LABELS: Record<CursorMode, string> = {
   "close-project": "BACK",
   website: "VIEW WEBSITE",
-  focus: "FOCUS",
+  focus: "INSPECT",
   "close-focus": "CLOSE",
 };
 
