@@ -683,7 +683,7 @@ export default function SelectedWork() {
         />
       </section>
 
-      <div className="pointer-events-none fixed bottom-[39svh] left-[3.8vw] z-[10] origin-left rotate-[10deg] whitespace-nowrap text-[13px] font-extrabold uppercase leading-none tracking-[0.01em]">
+      <div className="pointer-events-none fixed bottom-[39svh] left-[3.8vw] z-[10] origin-left rotate-[10deg] whitespace-nowrap text-[15px] font-extrabold uppercase leading-none tracking-[0.01em]">
         MY WORK
       </div>
 
