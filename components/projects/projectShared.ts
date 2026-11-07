@@ -33,7 +33,7 @@ export const STACK = [
 ] as const;
 
 
-export const TRANSITION_DURATION = 1.05;
+export const TRANSITION_DURATION = 0.8;
 export const TARGET_Z = 1.4;
 export const EDGE_BEND_STRENGTH = 1;
 export const GALLERY_WIDTH = 0.61;
