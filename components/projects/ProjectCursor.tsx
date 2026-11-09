@@ -22,7 +22,7 @@ const KINETIC_DAMPING = 11;
 const BASE_SPACING_EM = 0.11;
 
 const LABELS: Record<CursorMode, string> = {
-  "close-project": "BACK",
+  "close-project": "RETURN",
   website: "VIEW WEBSITE",
   focus: "INSPECT",
   "close-focus": "CLOSE",
