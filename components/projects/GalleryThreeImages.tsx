@@ -42,6 +42,12 @@ type ImageRect = {
   height: number;
 };
 
+// ELASTIC STRETCH SETTINGS
+const ELASTIC_STRETCH = 0.1;
+const ELASTIC_SQUASH = 0.018;
+const ELASTIC_DRAG = 0.025;
+const ELASTIC_DEPTH = 0.045;
+
 const galleryWidth = (size: Size) =>
   size.width * (size.width < 768 ? 0.86 : 0.48);
 
@@ -52,7 +58,6 @@ function cycleHeight(size: Size, ratios: number[]) {
   if (!ratios.length) return 1;
 
   const width = galleryWidth(size);
-
   const gap = size.height * 0.01;
 
   return (
@@ -67,7 +72,6 @@ function galleryRects(
   scroll: number,
 ): ImageRect[] {
   const width = galleryWidth(size);
-
   const gap = size.height * 0.01;
   const x = size.width / 2;
 
@@ -142,7 +146,16 @@ function GalleryPlane({
   const mesh = useRef<THREE.Mesh>(null);
   const frames = useRef(0);
   const reported = useRef(false);
-  const previousBend = useRef(0);
+
+  const previousElastic = useRef({
+    amount: 0,
+    axisX: 0,
+    axisY: 1,
+    direction: 1,
+  });
+
+  const previousProgress = useRef(0);
+  const movementDirection = useRef(1);
 
   const blurredTexture = useRef<THREE.CanvasTexture | null>(null);
 
@@ -157,7 +170,7 @@ function GalleryPlane({
   }, [texture]);
 
   const geometry = useMemo(
-    () => new THREE.PlaneGeometry(1, 1 / ratio, 24, 32),
+    () => new THREE.PlaneGeometry(1, 1 / ratio, 32, 40),
     [ratio],
   );
 
@@ -263,6 +276,7 @@ function GalleryPlane({
     node.position.set(x - size.width / 2, size.height / 2 - y, active ? 3 : 0);
 
     node.scale.set(width, width, 1);
+    node.rotation.set(0, 0, 0);
 
     node.renderOrder = active ? 300 : index + 1;
 
@@ -290,25 +304,101 @@ function GalleryPlane({
           )
         : 1);
 
-    const bend = active ? Math.sin(Math.PI * t) * 0.8 : 0;
+    // ELASTIC STRETCH
 
-    if (Math.abs(bend - previousBend.current) > 0.0001) {
+    // Track whether the image is opening or closing.
+    if (active) {
+      const delta = t - previousProgress.current;
+
+      if (delta > 0.00001) {
+        movementDirection.current = 1;
+      } else if (delta < -0.00001) {
+        movementDirection.current = -1;
+      }
+    } else {
+      movementDirection.current = 1;
+    }
+
+    previousProgress.current = t;
+
+    // The stretch is strongest during movement,
+    // and disappears when the image reaches its target.
+    const elastic = active ? Math.sin(Math.PI * t) : 0;
+
+    // Determine the direction from the gallery position
+    // to the fullscreen position.
+    const dx = end.x - rect.x;
+    const dy = rect.y - end.y;
+
+    const distance = Math.hypot(dx, dy);
+
+    const axisX = distance > 0.001 ? dx / distance : 0;
+
+    const axisY = distance > 0.001 ? dy / distance : 1;
+
+    const direction = movementDirection.current;
+
+    const previous = previousElastic.current;
+
+    const needsUpdate =
+      Math.abs(elastic - previous.amount) > 0.00001 ||
+      (elastic > 0.00001 &&
+        (Math.abs(axisX - previous.axisX) > 0.00001 ||
+          Math.abs(axisY - previous.axisY) > 0.00001 ||
+          direction !== previous.direction));
+
+    if (needsUpdate) {
+      const stretchAmount = 1 + elastic * ELASTIC_STRETCH;
+
+      const squashAmount = 1 - elastic * ELASTIC_SQUASH;
+
       for (let i = 0; i < positions.count; i++) {
         const u = uvs.getX(i);
         const v = uvs.getY(i);
 
-        positions.setXYZ(
-          i,
-          u - 0.5 + bend * Math.sin(v * Math.PI) * 0.035,
+        const baseX = u - 0.5;
+        const baseY = (v - 0.5) / ratio;
 
-          (v - 0.5) / ratio + bend * Math.sin(u * Math.PI) * (v - 0.5) * 0.035,
+        // Split vertex position into the movement
+        // direction and the perpendicular direction.
+        const along = baseX * axisX + baseY * axisY;
 
-          bend * Math.sin(u * Math.PI) * Math.sin(v * Math.PI) * 0.16,
-        );
+        const across = -baseX * axisY + baseY * axisX;
+
+        // Gently stretch along the movement direction.
+        const stretchedAlong = along * stretchAmount;
+
+        // Very slight compression perpendicular
+        // to the movement.
+        const squeezedAcross = across * squashAmount;
+
+        // Soft elastic lag in the middle of the image.
+        const centerProfile = Math.sin(u * Math.PI) * Math.sin(v * Math.PI);
+
+        const drag = -direction * elastic * ELASTIC_DRAG * centerProfile;
+
+        const finalAlong = stretchedAlong + drag;
+
+        // Reconstruct the original XY coordinates.
+        const finalX = finalAlong * axisX - squeezedAcross * axisY;
+
+        const finalY = finalAlong * axisY + squeezedAcross * axisX;
+
+        // Subtle depth so the image feels like
+        // a flexible surface rather than a flat scale.
+        const finalZ = elastic * ELASTIC_DEPTH * centerProfile;
+
+        positions.setXYZ(i, finalX, finalY, finalZ);
       }
 
       positions.needsUpdate = true;
-      previousBend.current = bend;
+
+      previousElastic.current = {
+        amount: elastic,
+        axisX,
+        axisY,
+        direction,
+      };
     }
 
     if (index === 0 && !reported.current && ++frames.current >= 3) {
@@ -525,14 +615,17 @@ export default function GalleryThreeImages({
     };
   }, [scrollControl, size]);
 
-  // Match cursor FOCUS to visible WebGL images, not empty screen space.
   useEffect(() => {
     hitTestRef.current = (x: number, y: number) => {
-      if (!interactive || focus.current.key !== null) return false;
+      if (!interactive || focus.current.key !== null) {
+        return false;
+      }
+
       return galleryRects(size, ratios.current, scroll.current.current).some(
         (rect) => contains(rect, x, y),
       );
     };
+
     return () => {
       hitTestRef.current = null;
     };
@@ -610,11 +703,8 @@ export default function GalleryThreeImages({
 
         const moving: ImageRect = {
           x: THREE.MathUtils.lerp(r.x, f.x, t),
-
           y: THREE.MathUtils.lerp(r.y, f.y, t),
-
           width: THREE.MathUtils.lerp(r.width, f.width, t),
-
           height: THREE.MathUtils.lerp(r.height, f.height, t),
         };
 
@@ -688,9 +778,13 @@ export default function GalleryThreeImages({
     };
 
     window.addEventListener("pointerdown", down, true);
+
     window.addEventListener("pointermove", move, true);
+
     window.addEventListener("pointerup", up, true);
+
     window.addEventListener("pointercancel", cancel, true);
+
     window.addEventListener("keydown", key);
 
     window.addEventListener("wheel", wheel, {
@@ -708,12 +802,12 @@ export default function GalleryThreeImages({
       window.removeEventListener("pointercancel", cancel, true);
 
       window.removeEventListener("keydown", key);
+
       window.removeEventListener("wheel", wheel, true);
     };
   }, [interactive, focus, onFocusImage, onUnfocusImage, size]);
 
   const width = galleryWidth(size);
-
   const height = width / firstRatio;
 
   return (
@@ -746,7 +840,9 @@ export default function GalleryThreeImages({
           antialias: false,
           powerPreference: "high-performance",
         }}
-        style={{ pointerEvents: "none" }}
+        style={{
+          pointerEvents: "none",
+        }}
       >
         <Planes
           sources={sources}
