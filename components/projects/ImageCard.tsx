@@ -222,7 +222,7 @@ export default function ImageCard({
       );
       root.position.y = THREE.MathUtils.damp(
         root.position.y,
-        config.y + 0.4 * lift + pointerSmooth.current.y * 0.07 * turn,
+        config.y + 0.1 * lift + pointerSmooth.current.y * 0.07 * turn,
         8.5,
         dt,
       );
