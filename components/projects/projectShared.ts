@@ -3,31 +3,31 @@ import type { MutableRefObject } from "react";
 import * as THREE from "three";
 
 
+
 export const CARD_WIDTH = 3.8;
-export const REST_YAW = 0.6;
+export const REST_YAW = 0;
 
 export const STACK = [
   {
-    x: -3.65,
-    y: -0.22,
+    x: -4.6,
+    y: -1,
     z: 0.25,
 
-    yawOffset: -0.45,
-    roll: 0.1,
+    yawOffset: 0,
+    roll: 0,
 
-    hoverZ: 3.8,
-    hoverOffsetX: 1.5,
+    hoverZ: 0.65,
+    hoverOffsetX: 0,
   },
-
   {
-    x: -1,
-    y: -0.12,
-    z: 0.65,
+    x: -0.4,
+    y: -1,
+    z: 0.25,
 
-    yawOffset: -0.25,
-    roll: -0.1,
+    yawOffset: 0,
+    roll: 0,
 
-    hoverZ: 3.6,
+    hoverZ: 0.65,
     hoverOffsetX: 0,
   },
 ] as const;

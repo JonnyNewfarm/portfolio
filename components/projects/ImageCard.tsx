@@ -74,9 +74,7 @@ export default function ImageCard({
   const config = STACK[index];
   const mobile = size.width < 430;
   const homeX = mobile ? (index === 0 ? -1.25 : 0.95) : config.x;
-  const restYaw =
-    REST_YAW +
-    Math.atan2(camera.position.x - homeX, camera.position.z - config.z);
+  const restYaw = 0;
   const image = texture.image as
     | { width?: number; height?: number }
     | undefined;
@@ -247,7 +245,7 @@ export default function ImageCard({
         dt,
       );
       root.scale.setScalar(
-        THREE.MathUtils.damp(root.scale.x, 1 - lift * 0.12, 9, dt),
+        THREE.MathUtils.damp(root.scale.x, 1 + lift * 0.025, 9, dt),
       );
     }
 

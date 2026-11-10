@@ -61,8 +61,7 @@ function MyWorkText({ visible }: { visible: boolean }) {
 
   return (
     <Text
-      position={[STACK[0].x - 2.5, STACK[0].y + 3.6, STACK[0].z - 0.3]}
-      rotation={[0, 0, -THREE.MathUtils.degToRad(10)]}
+      position={[STACK[0].x - 2.1, STACK[0].y + 3.2, STACK[0].z - 0.3]}
       fontSize={0.45}
       anchorX="left"
       anchorY="middle"
@@ -571,7 +570,7 @@ export default function SelectedWork() {
                 near: 0.1,
                 far: 50,
               }}
-              dpr={[1, 1.25]}
+              dpr={[1.25, 1.5]}
               gl={{
                 alpha: true,
                 antialias: false,
