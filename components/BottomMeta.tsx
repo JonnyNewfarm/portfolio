@@ -71,7 +71,7 @@ export default function BottomMeta() {
       "
     >
       <IntroText>
-        <span className="hidden lg:block">STATUS / OPEN FOR WORK</span>
+        <span className="hidden lg:block">Location / Oslo, Norway</span>
       </IntroText>
 
       <IntroText>

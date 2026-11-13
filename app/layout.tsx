@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
+import NavbarLayer from "@/components/NavbarLayer";
+import PortfolioShell from "@/components/PortfolioShell";
 
 const siteUrl = "https://www.jonasnygaard.com";
 
@@ -45,7 +47,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        {" "}
+        <PortfolioShell>{children}</PortfolioShell>
+      </body>
     </html>
   );
 }

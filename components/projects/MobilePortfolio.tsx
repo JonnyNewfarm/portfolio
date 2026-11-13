@@ -9,54 +9,6 @@ import { PROJECTS } from "@/lib/projects";
 const LINKEDIN_URL = "https://www.linkedin.com/in/jonas-nygaard-0aa767366";
 const GITHUB_URL = "https://github.com/JonnyNewfarm";
 
-function MobileHeader() {
-  const [theme, setTheme] = useState<"light" | "dark">("light");
-
-  useEffect(() => {
-    const stored = localStorage.getItem("theme");
-
-    const initial: "light" | "dark" =
-      stored === "light" || stored === "dark"
-        ? stored
-        : document.documentElement.dataset.theme === "dark"
-          ? "dark"
-          : window.matchMedia("(prefers-color-scheme: dark)").matches
-            ? "dark"
-            : "light";
-
-    document.documentElement.dataset.theme = initial;
-    setTheme(initial);
-  }, []);
-
-  const changeTheme = () => {
-    const next = theme === "light" ? "dark" : "light";
-
-    setTheme(next);
-    document.documentElement.dataset.theme = next;
-    localStorage.setItem("theme", next);
-  };
-
-  return (
-    <header className="relative z-20 flex items-start justify-between gap-4 px-[5vw] pt-7">
-      <Link
-        href="/"
-        className="font-bueno text-[13px] font-bold uppercase leading-none"
-      >
-        NAME / JONAS NYGAARD
-      </Link>
-
-      <button
-        type="button"
-        onClick={changeTheme}
-        aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
-        className="cursor-pointer font-bueno text-[13px] font-bold uppercase leading-none"
-      >
-        {theme === "light" ? "DARK" : "LIGHT"} MODE
-      </button>
-    </header>
-  );
-}
-
 function MobilePortrait() {
   return (
     <figure className="mt-10 flex justify-end">
@@ -83,8 +35,6 @@ function MobilePortrait() {
 function MobileHome() {
   return (
     <main className="min-h-svh overflow-x-hidden">
-      <MobileHeader />
-
       <section className="px-[5vw] pt-[clamp(80px,11svh,140px)]">
         <p className="mb-5 font-sans invisible text-[10px] font-medium uppercase tracking-[0.12em] opacity-60">
           Independent designer & developer

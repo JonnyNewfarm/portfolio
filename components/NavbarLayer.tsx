@@ -11,7 +11,11 @@ export default function NavbarLayer() {
   return (
     <div
       data-portfolio-navbar
-      className={isHome ? "relative z-[100]" : "relative z-10"}
+      className={
+        isHome
+          ? "absolute inset-x-0 top-0 z-[100]"
+          : "absolute inset-x-0 top-0 z-10"
+      }
     >
       <Navbar />
     </div>

@@ -18,7 +18,10 @@ const IMAGE_DURATION = 1.1;
 
 let introCompleted = false;
 
-type Props = { children: ReactNode };
+type Props = {
+  children: ReactNode;
+  entryPath: string;
+};
 
 type IntroTargets = {
   mobile: boolean;
@@ -31,6 +34,13 @@ type IntroTargets = {
   portfolioTarget: HTMLElement | null;
 };
 
+type Flight = {
+  label: HTMLSpanElement;
+  target: HTMLElement;
+  targetOpacity: string;
+  zIndex: number;
+};
+
 function preloadImage(src: string): Promise<void> {
   return new Promise((resolve) => {
     const image = new window.Image();
@@ -38,6 +48,7 @@ function preloadImage(src: string): Promise<void> {
 
     const done = () => {
       if (settled) return;
+
       settled = true;
       image.onload = null;
       image.onerror = null;
@@ -51,22 +62,29 @@ function preloadImage(src: string): Promise<void> {
         done();
       }
     };
+
     image.onerror = done;
     image.src = src;
 
     if (image.complete && image.naturalWidth > 0) {
-      if (typeof image.decode === "function") image.decode().then(done, done);
-      else done();
+      if (typeof image.decode === "function") {
+        image.decode().then(done, done);
+      } else {
+        done();
+      }
     }
   });
 }
 
 function findTargets(root: HTMLElement): IntroTargets {
   const mobile = window.matchMedia("(max-width: 767px)").matches;
+
   const hero = root.querySelector<HTMLElement>("main h1");
+
   const navTexts = Array.from(
     root.querySelectorAll<HTMLElement>("[data-intro-nav]"),
   );
+
   const metaTexts = Array.from(
     root.querySelectorAll<HTMLElement>("[data-intro-meta]"),
   );
@@ -75,6 +93,7 @@ function findTargets(root: HTMLElement): IntroTargets {
     const image = root.querySelector<HTMLImageElement>(
       'img[src="/portrait.jpg"]',
     );
+
     return {
       mobile,
       hero,
@@ -123,16 +142,15 @@ function findTargets(root: HTMLElement): IntroTargets {
   };
 }
 
-type Flight = {
-  label: HTMLSpanElement;
-  target: HTMLElement;
-  targetOpacity: string;
-  zIndex: number;
-};
+export default function SitePreloader({ children, entryPath }: Props) {
+  // The first route is fixed for this instance.
+  // Internal navigation never changes intro mode.
+  const [initialPath] = useState(entryPath);
+  const isHomeEntry = initialPath === "/";
 
-export default function SitePreloader({ children }: Props) {
   const [hadIntro] = useState(() => !introCompleted);
   const [finished, setFinished] = useState(() => introCompleted);
+
   const [theme, setTheme] = useState<"light" | "dark">("light");
 
   const contentRef = useRef<HTMLDivElement>(null);
@@ -143,10 +161,16 @@ export default function SitePreloader({ children }: Props) {
   const nameFlightRef = useRef<HTMLSpanElement>(null);
   const portfolioFlightRef = useRef<HTMLSpanElement>(null);
 
+  // --------------------------------------------------
+  // THEME
+  // --------------------------------------------------
+
   useLayoutEffect(() => {
     const html = document.documentElement;
+
     const updateTheme = () => {
       const stored = localStorage.getItem("theme");
+
       const next: "light" | "dark" =
         stored === "light" || stored === "dark"
           ? stored
@@ -155,24 +179,37 @@ export default function SitePreloader({ children }: Props) {
             : window.matchMedia("(prefers-color-scheme: dark)").matches
               ? "dark"
               : "light";
+
       setTheme(next);
     };
 
     updateTheme();
+
     const observer = new MutationObserver(updateTheme);
+
     observer.observe(html, {
       attributes: true,
       attributeFilter: ["data-theme"],
     });
+
     return () => observer.disconnect();
   }, []);
 
   useLayoutEffect(() => {
     const color = theme === "dark" ? "#e7e3dd" : "#211f1e";
-    if (nameFlightRef.current) nameFlightRef.current.style.color = color;
-    if (portfolioFlightRef.current)
+
+    if (nameFlightRef.current) {
+      nameFlightRef.current.style.color = color;
+    }
+
+    if (portfolioFlightRef.current) {
       portfolioFlightRef.current.style.color = color;
+    }
   }, [theme]);
+
+  // --------------------------------------------------
+  // PRELOADER
+  // --------------------------------------------------
 
   useLayoutEffect(() => {
     if (!hadIntro) return;
@@ -181,12 +218,17 @@ export default function SitePreloader({ children }: Props) {
     const overlay = overlayRef.current;
     const counter = counterRef.current;
     const countText = countTextRef.current;
-    if (!content || !overlay || !counter || !countText) return;
+
+    if (!content || !overlay || !counter || !countText) {
+      return;
+    }
 
     const reducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
+
     const isMobile = window.matchMedia("(max-width: 767px)").matches;
+
     const oldOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
@@ -195,37 +237,60 @@ export default function SitePreloader({ children }: Props) {
     let frame = 0;
     let safetyTimer = 0;
     let minimumTimer = 0;
+
     let phase: "loading" | "flying" | "landed" = "loading";
+
     let heroSplit: SplitText | null = null;
+
     let revealTimeline: gsap.core.Timeline | null = null;
+
     let exitTimeline: gsap.core.Timeline | null = null;
+
     let mobileObserver: IntersectionObserver | null = null;
+
     let prepared: IntroTargets | null = null;
+
     let flights: Flight[] = [];
+
     const hoverCleanups: Array<() => void> = [];
     const startedAt = performance.now();
 
+    // ------------------------------------------------
+    // COUNTER
+    // ------------------------------------------------
+
     const progress = { value: 1 };
+
     const renderProgress = () => {
       countText.textContent = `${Math.max(
         1,
         Math.round(Math.min(100, progress.value)),
       )}%`;
     };
+
     renderProgress();
 
-    const sources = [
-      ...new Set([
-        "/portrait.jpg",
-        ...PROJECTS.slice(0, 2).map((project) => project.images[0]),
-      ]),
-    ];
+    // Load the assets relevant to the entry page.
+    // This is shared by both intro modes.
+    const sources = isHomeEntry
+      ? [
+          ...new Set([
+            "/portrait.jpg",
+            ...PROJECTS.slice(0, 2).map((project) => project.images[0]),
+          ]),
+        ]
+      : initialPath.startsWith("/services")
+        ? ["/work/ker-1.jpg", "/work/cal-1.jpg", "/work/ker-5.jpg"]
+        : [];
+
     const totalTasks = sources.length + 2;
     let completedTasks = 0;
 
     const advanceProgress = () => {
       if (cancelled || loadingFinished) return;
+
       completedTasks++;
+
       gsap.to(progress, {
         value: Math.min(96, (completedTasks / totalTasks) * 96),
         duration: reducedMotion ? 0 : 0.8,
@@ -235,11 +300,18 @@ export default function SitePreloader({ children }: Props) {
       });
     };
 
+    // ------------------------------------------------
+    // KEEP FLIGHTS ALIGNED
+    // ------------------------------------------------
+
     const syncFlights = () => {
       if (isMobile || phase !== "landed") return;
+
       for (const { label, target } of flights) {
         const targetRect = target.getBoundingClientRect();
+
         const labelRect = label.getBoundingClientRect();
+
         gsap.set(label, {
           x: `+=${targetRect.left - labelRect.left}`,
           y: `+=${targetRect.top - labelRect.top}`,
@@ -249,34 +321,64 @@ export default function SitePreloader({ children }: Props) {
 
     window.addEventListener("resize", syncFlights);
 
+    // ------------------------------------------------
+    // WAIT FOR PAGE
+    // ------------------------------------------------
+
     const waitForPage = () =>
       new Promise<void>((resolve) => {
         const began = performance.now();
+
         const check = () => {
           if (cancelled) {
             resolve();
             return;
           }
-          const targets = findTargets(content);
-          const ready =
-            Boolean(targets.hero) &&
-            Boolean(targets.portrait) &&
-            targets.covers.length === 2 &&
-            (targets.mobile ||
-              targets.covers.every((cover) => !!cover.querySelector("canvas")));
+
+          let ready = false;
+
+          if (isHomeEntry) {
+            // Preserve the original homepage
+            // readiness checks.
+            const targets = findTargets(content);
+
+            ready =
+              Boolean(targets.hero) &&
+              Boolean(targets.portrait) &&
+              targets.covers.length === 2 &&
+              (targets.mobile ||
+                targets.covers.every(
+                  (cover) => !!cover.querySelector("canvas"),
+                ));
+          } else if (initialPath.startsWith("/services")) {
+            // Services has its own Three.js canvas.
+            // On mobile the canvas is not rendered.
+            ready =
+              Boolean(content.querySelector("#services")) &&
+              (isMobile || Boolean(content.querySelector("#services canvas")));
+          } else {
+            ready = Boolean(content.querySelector("main"));
+          }
 
           if (ready || performance.now() - began > 4000) {
             resolve();
             return;
           }
+
           frame = requestAnimationFrame(check);
         };
+
         check();
       });
+
+    // ------------------------------------------------
+    // ORIGINAL HOMEPAGE REVEAL
+    // ------------------------------------------------
 
     const prepareReveal = () => {
       const targets = findTargets(content);
       prepared = targets;
+
       if (reducedMotion) return targets;
 
       if (targets.hero) {
@@ -284,7 +386,11 @@ export default function SitePreloader({ children }: Props) {
           type: "lines",
           mask: "lines",
         });
-        gsap.set(heroSplit.lines, { yPercent: 112, autoAlpha: 0 });
+
+        gsap.set(heroSplit.lines, {
+          yPercent: 112,
+          autoAlpha: 0,
+        });
       }
 
       if (!targets.mobile) {
@@ -303,6 +409,7 @@ export default function SitePreloader({ children }: Props) {
 
         configs.forEach(({ label, target, zIndex }) => {
           if (!label || !target) return;
+
           flights.push({
             label,
             target,
@@ -314,15 +421,31 @@ export default function SitePreloader({ children }: Props) {
         });
 
         const anchor = targets.nameTarget?.closest("a");
+
         const nameLabel = nameFlightRef.current;
-        if (anchor && nameLabel && flights.some((f) => f.label === nameLabel)) {
+
+        if (
+          anchor &&
+          nameLabel &&
+          flights.some((flight) => flight.label === nameLabel)
+        ) {
           const enter = () =>
-            gsap.to(nameLabel, { opacity: 0.5, duration: 0.3 });
-          const leave = () => gsap.to(nameLabel, { opacity: 1, duration: 0.3 });
+            gsap.to(nameLabel, {
+              opacity: 0.5,
+              duration: 0.3,
+            });
+
+          const leave = () =>
+            gsap.to(nameLabel, {
+              opacity: 1,
+              duration: 0.3,
+            });
+
           anchor.addEventListener("pointerenter", enter);
           anchor.addEventListener("pointerleave", leave);
           anchor.addEventListener("focusin", enter);
           anchor.addEventListener("focusout", leave);
+
           hoverCleanups.push(() => {
             anchor.removeEventListener("pointerenter", enter);
             anchor.removeEventListener("pointerleave", leave);
@@ -333,46 +456,77 @@ export default function SitePreloader({ children }: Props) {
       }
 
       const flyingTargets = new Set(flights.map((flight) => flight.target));
+
       gsap.set(
         targets.navTexts.filter((element) => !flyingTargets.has(element)),
-        { yPercent: 112, autoAlpha: 0 },
+        {
+          yPercent: 112,
+          autoAlpha: 0,
+        },
       );
+
       gsap.set(
         targets.metaTexts.filter((element) => !flyingTargets.has(element)),
-        { yPercent: 112, autoAlpha: 0 },
+        {
+          yPercent: 112,
+          autoAlpha: 0,
+        },
       );
 
       if (targets.portrait) {
-        gsap.set(targets.portrait, { y: 70, autoAlpha: 0 });
+        gsap.set(targets.portrait, {
+          y: 70,
+          autoAlpha: 0,
+        });
       }
+
       targets.covers.forEach((cover) => {
-        gsap.set(cover, { y: targets.mobile ? 45 : 85, autoAlpha: 0 });
+        gsap.set(cover, {
+          y: targets.mobile ? 45 : 85,
+          autoAlpha: 0,
+        });
       });
+
       return targets;
     };
 
+    // ------------------------------------------------
+    // ORIGINAL REVEAL TIMELINE
+    // ------------------------------------------------
+
     const buildReveal = (targets: IntroTargets) => {
       const flyingTargets = new Set(flights.map((flight) => flight.target));
+
       const nav = targets.navTexts.filter(
         (element) => !flyingTargets.has(element),
       );
+
       const meta = targets.metaTexts.filter(
         (element) => !flyingTargets.has(element),
       );
 
       const tl = gsap.timeline({
         paused: true,
-        defaults: { ease: "expo.out" },
+        defaults: {
+          ease: "expo.out",
+        },
       });
+
       revealTimeline = tl;
 
       if (nav.length) {
         tl.to(
           nav,
-          { yPercent: 0, autoAlpha: 1, duration: NAV_DURATION, stagger: 0.065 },
+          {
+            yPercent: 0,
+            autoAlpha: 1,
+            duration: NAV_DURATION,
+            stagger: 0.065,
+          },
           0,
         );
       }
+
       if (heroSplit?.lines.length) {
         tl.to(
           heroSplit.lines,
@@ -385,13 +539,20 @@ export default function SitePreloader({ children }: Props) {
           0.08,
         );
       }
+
       if (meta.length) {
         tl.to(
           meta,
-          { yPercent: 0, autoAlpha: 1, duration: META_DURATION, stagger: 0.08 },
+          {
+            yPercent: 0,
+            autoAlpha: 1,
+            duration: META_DURATION,
+            stagger: 0.08,
+          },
           0.2,
         );
       }
+
       if (targets.portrait) {
         tl.to(
           targets.portrait,
@@ -400,6 +561,7 @@ export default function SitePreloader({ children }: Props) {
             autoAlpha: 1,
             duration: IMAGE_DURATION,
             ease: "power3.out",
+
             onComplete: () => {
               if (targets.portrait) {
                 gsap.set(targets.portrait, {
@@ -411,6 +573,7 @@ export default function SitePreloader({ children }: Props) {
           0.18,
         );
       }
+
       if (!targets.mobile && targets.covers.length) {
         tl.to(
           targets.covers,
@@ -420,6 +583,7 @@ export default function SitePreloader({ children }: Props) {
             duration: IMAGE_DURATION,
             stagger: 0.12,
             ease: "power3.out",
+
             onComplete: () => {
               gsap.set(targets.covers, {
                 clearProps: "transform,opacity,visibility",
@@ -429,6 +593,7 @@ export default function SitePreloader({ children }: Props) {
           0.28,
         );
       }
+
       if (targets.mobile && targets.covers.length) {
         tl.call(
           () => {
@@ -438,6 +603,7 @@ export default function SitePreloader({ children }: Props) {
                 autoAlpha: 1,
                 duration: 0.95,
                 ease: "power3.out",
+
                 onComplete: () => {
                   gsap.set(element, {
                     clearProps: "transform,opacity,visibility",
@@ -445,44 +611,66 @@ export default function SitePreloader({ children }: Props) {
                 },
               });
             };
+
             if (!("IntersectionObserver" in window)) {
               targets.covers.forEach(animate);
               return;
             }
+
             mobileObserver = new IntersectionObserver(
               (entries) => {
                 entries.forEach((entry) => {
-                  if (!entry.isIntersecting) return;
+                  if (!entry.isIntersecting) {
+                    return;
+                  }
+
                   mobileObserver?.unobserve(entry.target);
+
                   animate(entry.target as HTMLElement);
                 });
               },
-              { threshold: 0.08, rootMargin: "0px 0px -30px 0px" },
+              {
+                threshold: 0.08,
+                rootMargin: "0px 0px -30px 0px",
+              },
             );
+
             targets.covers.forEach((cover) => mobileObserver?.observe(cover));
           },
           undefined,
           0.28,
         );
       }
+
       tl.call(() => {
         if (!heroSplit) return;
+
         gsap.set(heroSplit.lines, {
           clearProps: "transform,opacity,visibility",
         });
+
         heroSplit.revert();
         heroSplit = null;
       });
     };
 
+    // ------------------------------------------------
+    // HOME: ORIGINAL FLIGHT ANIMATION
+    // ------------------------------------------------
+
     const exitPreloader = (targets: IntroTargets) => {
       if (cancelled) return;
-      gsap.set(content, { autoAlpha: 1 });
+
+      gsap.set(content, {
+        autoAlpha: 1,
+      });
 
       if (reducedMotion) {
         introCompleted = true;
-        setFinished(true);
+
         document.body.style.overflow = oldOverflow;
+
+        setFinished(true);
         return;
       }
 
@@ -492,10 +680,21 @@ export default function SitePreloader({ children }: Props) {
       exitTimeline = gsap.timeline({
         onComplete: () => {
           if (cancelled) return;
+
           phase = "landed";
           introCompleted = true;
+
           document.body.style.overflow = oldOverflow;
 
+          // Restore the real text at the
+          // flight destinations.
+          flights.forEach(({ target, targetOpacity }) => {
+            target.style.opacity = targetOpacity;
+          });
+
+          // Remove the fixed flight elements.
+          // They are no longer needed after
+          // reaching the navbar and metadata.
           setFinished(true);
         },
       });
@@ -522,14 +721,23 @@ export default function SitePreloader({ children }: Props) {
       );
 
       const activeLabels = new Set(flights.map((flight) => flight.label));
+
       [nameFlightRef.current, portfolioFlightRef.current].forEach((label) => {
         if (label && !activeLabels.has(label)) {
-          exitTimeline!.to(label, { autoAlpha: 0, duration: 0.25 }, 0);
+          exitTimeline!.to(
+            label,
+            {
+              autoAlpha: 0,
+              duration: 0.25,
+            },
+            0,
+          );
         }
       });
 
       flights.forEach(({ label, target, zIndex }) => {
         const destination = target.getBoundingClientRect();
+
         const from = label.getBoundingClientRect();
 
         exitTimeline!.to(
@@ -539,8 +747,11 @@ export default function SitePreloader({ children }: Props) {
             y: destination.top - from.top,
             duration: FLY_DURATION,
             ease: "power3.inOut",
+
             onComplete: () => {
-              gsap.set(label, { zIndex });
+              gsap.set(label, {
+                zIndex,
+              });
             },
           },
           0.14,
@@ -554,14 +765,75 @@ export default function SitePreloader({ children }: Props) {
       );
     };
 
+    // ------------------------------------------------
+    // SERVICES / OTHER ROUTES: COUNTER ONLY
+    // ------------------------------------------------
+
+    const exitCounterOnly = () => {
+      if (cancelled) return;
+
+      gsap.set(content, {
+        autoAlpha: 1,
+      });
+
+      if (reducedMotion) {
+        introCompleted = true;
+
+        document.body.style.overflow = oldOverflow;
+
+        setFinished(true);
+        return;
+      }
+
+      exitTimeline = gsap.timeline({
+        onComplete: () => {
+          if (cancelled) return;
+
+          introCompleted = true;
+
+          document.body.style.overflow = oldOverflow;
+
+          setFinished(true);
+        },
+      });
+
+      exitTimeline.to(
+        counter,
+        {
+          y: -18,
+          autoAlpha: 0,
+          duration: 0.35,
+          ease: "power2.inOut",
+        },
+        0,
+      );
+
+      exitTimeline.to(
+        overlay,
+        {
+          autoAlpha: 0,
+          duration: EXIT_DURATION,
+          ease: "power2.inOut",
+        },
+        0.12,
+      );
+    };
+
+    // ------------------------------------------------
+    // LOADING SEQUENCE
+    // ------------------------------------------------
+
     const start = async () => {
       const tasks: Promise<unknown>[] = sources.map((src) =>
         preloadImage(src).then(advanceProgress),
       );
+
       const fontTask = document.fonts
         ? document.fonts.ready.then(advanceProgress, advanceProgress)
         : Promise.resolve().then(advanceProgress);
+
       tasks.push(fontTask);
+
       tasks.push(waitForPage().then(advanceProgress));
 
       const safety = new Promise<void>((resolve) => {
@@ -569,19 +841,24 @@ export default function SitePreloader({ children }: Props) {
       });
 
       await Promise.race([Promise.allSettled(tasks), safety]);
+
       if (cancelled) return;
+
       loadingFinished = true;
+
       window.clearTimeout(safetyTimer);
 
       const remaining = Math.max(
         0,
         MIN_DISPLAY - (performance.now() - startedAt),
       );
+
       if (remaining) {
         await new Promise<void>((resolve) => {
           minimumTimer = window.setTimeout(resolve, remaining);
         });
       }
+
       if (cancelled) return;
 
       await new Promise<void>((resolve) => {
@@ -594,31 +871,50 @@ export default function SitePreloader({ children }: Props) {
           onComplete: resolve,
         });
       });
+
       if (cancelled) return;
 
       await new Promise<void>((resolve) => {
         minimumTimer = window.setTimeout(resolve, reducedMotion ? 0 : 220);
       });
+
       if (cancelled) return;
 
-      const targets = prepareReveal();
-      exitPreloader(targets);
+      // The important distinction:
+      // choose the exit animation ONLY from
+      // the initial entry route.
+      if (isHomeEntry) {
+        const targets = prepareReveal();
+        exitPreloader(targets);
+      } else {
+        exitCounterOnly();
+      }
     };
 
     void start();
 
+    // ------------------------------------------------
+    // CLEANUP
+    // ------------------------------------------------
+
     return () => {
       cancelled = true;
+
       window.clearTimeout(safetyTimer);
       window.clearTimeout(minimumTimer);
       cancelAnimationFrame(frame);
+
       window.removeEventListener("resize", syncFlights);
+
       exitTimeline?.kill();
       revealTimeline?.kill();
+
       gsap.killTweensOf(progress);
       gsap.killTweensOf(counter);
       gsap.killTweensOf(overlay);
+
       mobileObserver?.disconnect();
+
       hoverCleanups.forEach((cleanup) => cleanup());
 
       if (prepared) {
@@ -628,17 +924,28 @@ export default function SitePreloader({ children }: Props) {
           ...(prepared.portrait ? [prepared.portrait] : []),
           ...prepared.covers,
         ];
+
         gsap.killTweensOf(elements);
-        gsap.set(elements, { clearProps: "transform,opacity,visibility" });
+
+        gsap.set(elements, {
+          clearProps: "transform,opacity,visibility",
+        });
       }
+
       flights.forEach(({ label, target, targetOpacity }) => {
         gsap.killTweensOf(label);
         target.style.opacity = targetOpacity;
       });
+
       heroSplit?.revert();
+
       document.body.style.overflow = oldOverflow;
     };
-  }, [hadIntro]);
+  }, [hadIntro, initialPath, isHomeEntry]);
+
+  // --------------------------------------------------
+  // RENDER
+  // --------------------------------------------------
 
   return (
     <>
@@ -651,7 +958,12 @@ export default function SitePreloader({ children }: Props) {
           ref={overlayRef}
           role="status"
           aria-label="Loading portfolio"
-          className="fixed inset-0 z-[9999] overflow-hidden"
+          className="
+            fixed
+            inset-0
+            z-[9999]
+            overflow-hidden
+          "
           style={{
             backgroundColor: theme === "dark" ? "#141413" : "#ececec",
             color: theme === "dark" ? "#e7e3dd" : "#211f1e",
@@ -661,7 +973,21 @@ export default function SitePreloader({ children }: Props) {
         >
           <div
             ref={counterRef}
-            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap text-center    leading-none tracking-[-0.06em] tabular-nums font-extrabold text-[14px] xl:text-[15px]"
+            className="
+              absolute
+              left-1/2
+              top-1/2
+              -translate-x-1/2
+              -translate-y-1/2
+              whitespace-nowrap
+              text-center
+              text-[14px]
+              font-extrabold
+              leading-none
+              tracking-[-0.06em]
+              tabular-nums
+              xl:text-[15px]
+            "
             style={{
               fontVariantNumeric: "tabular-nums",
               willChange: "transform,opacity",
@@ -670,9 +996,16 @@ export default function SitePreloader({ children }: Props) {
             <span aria-hidden="true" className="invisible block">
               888%
             </span>
+
             <span
               ref={countTextRef}
-              className="absolute inset-0 flex items-center justify-center"
+              className="
+                absolute
+                inset-0
+                flex
+                items-center
+                justify-center
+              "
             >
               1%
             </span>
@@ -680,12 +1013,34 @@ export default function SitePreloader({ children }: Props) {
         </div>
       )}
 
-      {hadIntro && (
+      {/*
+        Fly labels exist ONLY during the
+        initial homepage intro.
+
+        Once finished, they unmount.
+        This fixes PORTFOLIO / 2026
+        remaining on /services.
+      */}
+
+      {hadIntro && isHomeEntry && !finished && (
         <>
           <span
             ref={nameFlightRef}
             aria-hidden="true"
-            className="pointer-events-none fixed z-[10001] hidden whitespace-nowrap text-[14px] font-extrabold uppercase leading-none tracking-[0.01em] md:block xl:text-[15px]"
+            className="
+              pointer-events-none
+              fixed
+              z-[10001]
+              hidden
+              whitespace-nowrap
+              text-[14px]
+              font-extrabold
+              uppercase
+              leading-none
+              tracking-[0.01em]
+              md:block
+              xl:text-[15px]
+            "
             style={{
               left: "3.1vw",
               top: "50%",
@@ -695,10 +1050,23 @@ export default function SitePreloader({ children }: Props) {
           >
             NAME / JONAS NYGAARD
           </span>
+
           <span
             ref={portfolioFlightRef}
             aria-hidden="true"
-            className="pointer-events-none fixed z-[10001] hidden whitespace-nowrap text-[clamp(13px,1.2vw,18px)] font-extrabold uppercase leading-none tracking-[-0.015em] md:block"
+            className="
+              pointer-events-none
+              fixed
+              z-[10001]
+              hidden
+              whitespace-nowrap
+              text-[clamp(13px,1.2vw,18px)]
+              font-extrabold
+              uppercase
+              leading-none
+              tracking-[-0.015em]
+              md:block
+            "
             style={{
               right: "3.1vw",
               top: "50%",
