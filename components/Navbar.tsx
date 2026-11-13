@@ -7,7 +7,9 @@ import { usePathname } from "next/navigation";
 type Theme = "light" | "dark";
 
 const LINKEDIN_URL = "https://www.linkedin.com/in/jonas-nygaard-0aa767366";
+
 const GITHUB_URL = "https://github.com/JonnyNewfarm";
+
 const EMAIL = "jonasnygaard96@gmail.com";
 
 function IntroText({ children }: { children: ReactNode }) {
@@ -55,7 +57,9 @@ export default function Navbar() {
 
   const changeTheme = (nextTheme: Theme) => {
     setTheme(nextTheme);
+
     document.documentElement.dataset.theme = nextTheme;
+
     localStorage.setItem("theme", nextTheme);
   };
 
@@ -97,9 +101,10 @@ export default function Navbar() {
           leading-none
           tracking-[0.01em]
 
-          sm:gap-x-4
+          sm:gap-x-3
           sm:text-[12px]
 
+          md:gap-x-4
           md:text-[14px]
 
           lg:gap-x-5
@@ -112,122 +117,131 @@ export default function Navbar() {
 
         <Link
           href="/"
-          className="shrink-0 whitespace-nowrap transition-opacity duration-300 hover:opacity-50"
+          className="
+            shrink-0
+            whitespace-nowrap
+            transition-opacity
+            duration-300
+            hover:opacity-50
+          "
         >
           <IntroText>
             <span className="hidden sm:inline">NAME / JONAS NYGAARD</span>
+
             <span className="sm:hidden">JONAS NYGAARD</span>
           </IntroText>
         </Link>
 
-        {/* ROLE - DESKTOP ONLY */}
+        {/* ROLE */}
 
         <span className="hidden shrink-0 whitespace-nowrap xl:inline-flex">
           <IntroText>DESIGNER / DEVELOPER</IntroText>
         </span>
 
-        {/* THEME + SOCIALS */}
+        {/* THEME */}
 
         <div
-          className="
-            flex
-            shrink-0
-            items-center
-            gap-x-3
-
-            sm:ml-auto
-            sm:gap-x-5
-
-            lg:contents
-          "
+          className="flex shrink-0 items-center whitespace-nowrap"
+          aria-label="Color theme"
         >
-          {/* THEME */}
-
-          <div
-            className="flex shrink-0 items-center whitespace-nowrap"
-            aria-label="Color theme"
-          >
-            <IntroText>
-              <button
-                type="button"
-                onClick={() => changeTheme("light")}
-                aria-pressed={theme === "light"}
-                className={`cursor-pointer transition-opacity duration-300 ${
+          <IntroText>
+            <button
+              type="button"
+              onClick={() => changeTheme("light")}
+              aria-pressed={theme === "light"}
+              className={`
+                cursor-pointer
+                transition-opacity
+                duration-300
+                ${
                   theme === "light"
                     ? "opacity-100"
                     : "opacity-35 hover:opacity-70"
-                }`}
-              >
-                LIGHT
-              </button>
+                }
+              `}
+            >
+              LIGHT
+            </button>
 
-              <span className="px-1 opacity-40 sm:px-1.5">/</span>
+            <span className="px-1 opacity-40 sm:px-1.5">/</span>
 
-              <button
-                type="button"
-                onClick={() => changeTheme("dark")}
-                aria-pressed={theme === "dark"}
-                className={`cursor-pointer transition-opacity duration-300 ${
+            <button
+              type="button"
+              onClick={() => changeTheme("dark")}
+              aria-pressed={theme === "dark"}
+              className={`
+                cursor-pointer
+                transition-opacity
+                duration-300
+                ${
                   theme === "dark"
                     ? "opacity-100"
                     : "opacity-35 hover:opacity-70"
-                }`}
-              >
-                DARK
-              </button>
-            </IntroText>
-          </div>
+                }
+              `}
+            >
+              DARK
+            </button>
+          </IntroText>
+        </div>
 
-          {/* SOCIALS - HIDDEN ON MOBILE */}
+        {/* SOCIALS */}
 
-          <div className="hidden shrink-0 items-center whitespace-nowrap sm:flex">
-            <IntroText>
-              <a
-                href={LINKEDIN_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="transition-opacity duration-300 hover:opacity-50"
-              >
-                LINKEDIN
-              </a>
+        <div className="hidden shrink-0 items-center whitespace-nowrap sm:flex">
+          <IntroText>
+            <a
+              href={LINKEDIN_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="transition-opacity duration-300 hover:opacity-50"
+            >
+              LINKEDIN
+            </a>
 
-              <span className="px-1 opacity-40 sm:px-1.5">/</span>
+            <span className="px-1 opacity-40 sm:px-1.5">/</span>
 
-              <a
-                href={GITHUB_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="transition-opacity duration-300 hover:opacity-50"
-              >
-                GITHUB
-              </a>
+            <a
+              href={GITHUB_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="transition-opacity duration-300 hover:opacity-50"
+            >
+              GITHUB
+            </a>
 
-              <span className="px-1 opacity-40 sm:px-1.5">/</span>
+            <span className="px-1 opacity-40 sm:px-1.5">/</span>
 
-              <button
-                type="button"
-                onClick={copyEmail}
-                aria-label={`Copy email address ${EMAIL}`}
-                className="cursor-pointer transition-opacity duration-300 hover:opacity-50"
-              >
-                {copied ? "COPIED!" : "EMAIL"}
-              </button>
-            </IntroText>
-          </div>
+            <button
+              type="button"
+              onClick={copyEmail}
+              aria-label={`Copy email address ${EMAIL}`}
+              className="
+                cursor-pointer
+                transition-opacity
+                duration-300
+                hover:opacity-50
+              "
+            >
+              {copied ? "COPIED!" : "EMAIL"}
+            </button>
+          </IntroText>
         </div>
 
         {/* NAVIGATION */}
 
         <div className="flex shrink-0 items-center whitespace-nowrap">
           <IntroText>
-            {/* HOME - HIDDEN ON MOBILE */}
-
             <Link
               href="/"
               aria-current={pathname === "/" ? "page" : undefined}
-              className={`hidden transition-opacity duration-300 hover:opacity-50 sm:inline ${
-                pathname === "/" ? "opacity-100" : "opacity-50"
-              }`}
+              className={`
+                hidden
+                transition-opacity
+                duration-300
+                hover:opacity-50
+                sm:inline
+                ${pathname === "/" ? "opacity-100" : "opacity-50"}
+              `}
             >
               HOME
             </Link>
@@ -236,14 +250,15 @@ export default function Navbar() {
               /
             </span>
 
-            {/* SERVICES */}
-
             <Link
               href="/services"
               aria-current={pathname === "/services" ? "page" : undefined}
-              className={`transition-opacity duration-300 hover:opacity-50 ${
-                pathname === "/services" ? "opacity-100" : "opacity-50"
-              }`}
+              className={`
+                transition-opacity
+                duration-300
+                hover:opacity-50
+                ${pathname === "/services" ? "opacity-100" : "opacity-50"}
+              `}
             >
               SERVICES
             </Link>

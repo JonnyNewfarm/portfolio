@@ -70,10 +70,9 @@ function MyWorkText({ visible }: { visible: boolean }) {
       outlineColor={color}
       outlineWidth={0.012}
       renderOrder={-100}
-      visible={visible}
       raycast={() => {}}
     >
-      MY WORK
+      SELECTED WORK
     </Text>
   );
 }
