@@ -7,7 +7,7 @@ import ServicesFooter from "@/components/services/ServicesFooter";
 export default function ServicesPage() {
   return (
     <ServicesSmoothScroll>
-      <main>
+      <main className="overflow-x-clip">
         <ServicesHero />
 
         <ServicesShowcase />

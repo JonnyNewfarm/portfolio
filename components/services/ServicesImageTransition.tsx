@@ -692,14 +692,8 @@ export default function ServicesImageTransition({ activeIndex }: Props) {
     setAnimating(false);
   }, []);
 
-  // Stop WebGL offscreen.
-  // Render static images on demand.
-  // Render continuously during transitions/video.
-  const frameloop = !visible
-    ? "never"
-    : animating || activeIndex === 2
-      ? "always"
-      : "demand";
+  const frameloop =
+    visible && (animating || activeIndex === 2) ? "always" : "demand";
 
   return (
     <>
@@ -729,6 +723,7 @@ export default function ServicesImageTransition({ activeIndex }: Props) {
             far: 100,
           }}
           dpr={1.5}
+          resize={{ scroll: false }}
           frameloop={frameloop}
           gl={{
             alpha: true,

@@ -24,7 +24,9 @@ const IMAGES = [
 
 const ServicesImageTransition = dynamic(
   () => import("./ServicesImageTransition"),
-  { ssr: false },
+  {
+    ssr: false,
+  },
 );
 
 const services: Service[] = [
@@ -52,12 +54,30 @@ const services: Service[] = [
 ];
 
 export default function ServicesShowcase() {
+  const sectionRef = useRef<HTMLElement | null>(null);
+
+  const desktopMediaRef = useRef<HTMLDivElement | null>(null);
+
   const textRefs = useRef<(HTMLParagraphElement | null)[]>([]);
+
   const activeIndexRef = useRef(0);
 
   const [activeIndex, setActiveIndex] = useState(0);
 
+  // Only track scrolling while showcase is visible.
+  const sectionVisible = useInView(sectionRef, {
+    amount: 0,
+  });
+
+  const desktopMediaVisible = useInView(desktopMediaRef, {
+    once: true,
+    amount: 0,
+    margin: "0px 0px 500px 0px",
+  });
+
   useEffect(() => {
+    if (!sectionVisible) return;
+
     let frame = 0;
 
     const update = () => {
@@ -105,10 +125,11 @@ export default function ServicesShowcase() {
         cancelAnimationFrame(frame);
       }
     };
-  }, []);
+  }, [sectionVisible]);
 
   return (
     <section
+      ref={sectionRef}
       id="services"
       className="
         relative
@@ -126,15 +147,12 @@ export default function ServicesShowcase() {
           grid-cols-1
           items-stretch
           overflow-visible
-
           lg:grid-cols-[minmax(0,1fr)_500px]
           lg:gap-12
-
           xl:grid-cols-[minmax(0,1fr)_650px]
         "
       >
         {/* TEXT */}
-
         <div className="min-w-0 lg:pb-[38svh]">
           {services.map((service, index) => (
             <article
@@ -148,7 +166,6 @@ export default function ServicesShowcase() {
                 justify-center
                 gap-12
                 py-20
-
                 lg:min-h-[115svh]
                 lg:last:min-h-[140svh]
                 lg:gap-0
@@ -164,7 +181,6 @@ export default function ServicesShowcase() {
               />
 
               {/* MOBILE / TABLET MEDIA */}
-
               <div
                 className="
                   flex
@@ -180,7 +196,6 @@ export default function ServicesShowcase() {
         </div>
 
         {/* DESKTOP STICKY IMAGE / VIDEO */}
-
         <div
           className="
             relative
@@ -205,6 +220,7 @@ export default function ServicesShowcase() {
             "
           >
             <div
+              ref={desktopMediaRef}
               className="
                 relative
                 aspect-[4/4.7]
@@ -216,7 +232,9 @@ export default function ServicesShowcase() {
               role="img"
               aria-label={services[activeIndex].alt}
             >
-              <ServicesImageTransition activeIndex={activeIndex} />
+              {desktopMediaVisible && (
+                <ServicesImageTransition activeIndex={activeIndex} />
+              )}
             </div>
           </div>
         </div>
@@ -272,6 +290,7 @@ function ServiceText({
 
 function MobileMedia({ src, alt }: { src: string; alt: string }) {
   const ref = useRef<HTMLDivElement>(null);
+
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const reducedMotion = useReducedMotion();
