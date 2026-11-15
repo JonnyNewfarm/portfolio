@@ -19,6 +19,15 @@ function sentenceCase(value: string) {
   return text ? text.charAt(0).toUpperCase() + text.slice(1) : "";
 }
 
+function compactIntro(value: string) {
+  const text = value
+    .trim()
+    .split(/,\s*combining\b/i)[0]
+    .replace(/[.\s]+$/, "");
+
+  return sentenceCase(`${text}.`);
+}
+
 export default function ProjectDetailsInfo({
   project,
   reversing,
@@ -206,57 +215,59 @@ export default function ProjectDetailsInfo({
         aria-hidden={hidden}
         className="pointer-events-none fixed inset-0 z-[85] text-[#ece9e4] opacity-0 max-md:hidden"
       >
-        {/* INTRODUCTION — LG AND ABOVE */}
+        {/* INTRODUCTION — BOTTOM CENTER */}
         <aside
           aria-label={`${project.title} introduction`}
           className="
             fixed
-            left-[3.5vw]
-            top-[28svh]
-            hidden
-            w-[22vw]
-            lg:block
-            xl:top-[32svh]
-            xl:w-[19.5vw]
+            bottom-[4svh]
+left-[60%]
+-translate-x-1/2            hidden
+            w-[min(44vw,640px)]
+            items-center
+            justify-center
+            lg:flex
           "
         >
           <p
             ref={introRef}
             className="
-              text-[clamp(15px,1.55vw,27px)]
+              w-full
+              truncate
+              text-center
+              text-[16px]
               font-medium
-              normal-case
-              leading-[1.3]
-              tracking-[-0.035em]
+              tracking-[-0.01em]
               text-[#ece9e4]
-              xl:text-[clamp(20px,1.55vw,29px)]
             "
           >
-            {sentenceCase(project.intro)}
+            {compactIntro(project.intro)}
           </p>
         </aside>
 
         {/* CREDITS */}
         <dl
           className="
-            fixed
-            bottom-[5.5svh]
-            right-[3.5vw]
-            flex
-            flex-row
-            items-baseline
-            gap-x-[clamp(12px,2vw,26px)]
+  fixed
+  bottom-[4.5svh]
+  right-[3.5vw]
+  flex
+  flex-row
+  items-baseline
+  gap-x-[clamp(12px,2vw,26px)]
 
-            lg:bottom-[16svh]
-            lg:left-[3.5vw]
-            lg:right-auto
-            lg:w-[22vw]
-            lg:flex-col
-            lg:items-start
-            lg:gap-y-[clamp(10px,1.5svh,18px)]
+  lg:top-1/2
+  lg:bottom-auto
+  lg:left-[3.5vw]
+  lg:right-auto
+  lg:w-[22vw]
+  lg:-translate-y-1/2
+  lg:flex-col
+  lg:items-start
+  lg:gap-y-[clamp(10px,1.5svh,18px)]
 
-            xl:w-[19.5vw]
-          "
+  xl:w-[19.5vw]
+"
         >
           {[
             {
@@ -275,7 +286,16 @@ export default function ProjectDetailsInfo({
             <div
               key={item.label}
               data-credit
-              className="flex shrink-0 items-baseline gap-x-1 whitespace-nowrap"
+              className="
+    flex
+    shrink-0
+    items-baseline
+    gap-x-1
+    whitespace-nowrap
+    lg:flex-col
+    lg:items-start
+    lg:gap-y-1
+  "
             >
               <dt
                 className="
@@ -290,7 +310,7 @@ export default function ProjectDetailsInfo({
 
               <dd
                 className="
-                  text-[clamp(11px,0.9vw,16px)]
+                  text-[18px]
                   font-medium
                   leading-[1.4]
                   tracking-[-0.02em]
@@ -309,14 +329,16 @@ export default function ProjectDetailsInfo({
           className="
             pointer-events-none
             fixed
-            bottom-[5.5svh]
+            bottom-[4svh]
             right-[3.5vw]
             hidden
-            text-[12px]
+            h-[22px]
+            items-center
+            text-[14px]
             font-medium
             tracking-[-0.01em]
-            text-white/55
-            lg:block
+            text-white
+            lg:flex
           "
         >
           Scroll or click to navigate
@@ -334,13 +356,13 @@ export default function ProjectDetailsInfo({
           aria-label={`View ${project.title} live website`}
           aria-hidden={hidden}
           tabIndex={hidden ? -1 : 0}
-          className={`group fixed bottom-[5.5svh] left-[3.5vw] z-[88] inline-flex items-center gap-4 text-[#ece9e4] opacity-0 max-md:bottom-[5svh] max-md:left-[5vw] ${
+          className={`group fixed bottom-[4.5svh] left-[3.5vw] z-[88] inline-flex items-center gap-4 text-[#ece9e4] opacity-0 max-md:bottom-[5svh] max-md:left-[5vw] ${
             hidden
               ? "pointer-events-none"
               : "pointer-events-auto cursor-pointer"
           }`}
         >
-          <span className="text-[12px] font-medium leading-none tracking-[-0.01em]">
+          <span className="text-[16px] font-medium leading-none tracking-[-0.01em]">
             View live project
           </span>
 

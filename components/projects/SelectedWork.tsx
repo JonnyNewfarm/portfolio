@@ -1,6 +1,6 @@
 "use client";
 import { Canvas } from "@react-three/fiber";
-import { Text } from "@react-three/drei";
+import { Text, useTexture } from "@react-three/drei";
 import { useRouter } from "next/navigation";
 import gsap from "gsap";
 import {
@@ -80,6 +80,19 @@ function MyWorkText({ visible }: { visible: boolean }) {
 
 export default function SelectedWork() {
   const router = useRouter();
+  useEffect(() => {
+    const preload = () => {
+      PROJECTS.slice(0, 2).forEach((project) => {
+        project.images.slice(1, 5).forEach((src) => {
+          useTexture.preload(src);
+        });
+      });
+    };
+
+    const timeout = window.setTimeout(preload, 500);
+
+    return () => window.clearTimeout(timeout);
+  }, []);
   const initialSlug = useInitialProjectSlug();
   const initialIndex = initialSlug
     ? PROJECTS.findIndex((project) => project.slug === initialSlug)
@@ -395,9 +408,7 @@ export default function SelectedWork() {
         stableFrames = 0;
       }
       previousRect = rect;
-      const warmedUp =
-        galleryReadyRef.current ||
-        performance.now() - mountedAt >= OPENING_WARMUP_MS;
+      const warmedUp = galleryReadyRef.current;
       if (stableFrames < 2 || !warmedUp) {
         frame = requestAnimationFrame(startWhenStable);
         return;

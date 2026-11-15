@@ -56,8 +56,8 @@ const THUMB_FADE_DURATION = 0.9;
 const THUMB_OFFSET_Y = 22;
 
 // Layout
-const MAIN_WIDTH = 0.45;
-const MAIN_HEIGHT = 0.75;
+const MAIN_WIDTH = 0.43;
+const MAIN_HEIGHT = 0.71;
 
 const THUMB_MAX_WIDTH = 0.155;
 const THUMB_TOTAL_HEIGHT = 0.64;
