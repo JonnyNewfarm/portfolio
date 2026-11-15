@@ -61,6 +61,7 @@ function MyWorkText({ visible }: { visible: boolean }) {
 
   return (
     <Text
+      visible={visible}
       position={[STACK[0].x - 2.1, STACK[0].y + 3.2, STACK[0].z - 0.3]}
       fontSize={0.45}
       anchorX="left"
@@ -590,11 +591,11 @@ export default function SelectedWork() {
                 titles={titleNodes}
                 closing={closing}
               />
-              {index === 0 && (
-                <Suspense fallback={null}>
-                  <MyWorkText visible={selected === null} />
-                </Suspense>
-              )}
+              <Suspense fallback={null}>
+                <MyWorkText
+                  visible={selected === null ? index === 0 : selected !== index}
+                />
+              </Suspense>
             </Canvas>
           </div>
         ))}
@@ -612,7 +613,6 @@ export default function SelectedWork() {
                 pointer-events-none
                 fixed
                 z-[85]
-                font-bueno
                 font-bold
                 uppercase
                 leading-[0.99]

@@ -27,63 +27,51 @@ export default function ProjectDetailsInfo({
 }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
   const introRef = useRef<HTMLParagraphElement>(null);
-  const descriptionRef = useRef<HTMLParagraphElement>(null);
   const linkRef = useRef<HTMLAnchorElement>(null);
-  const dividerRef = useRef<HTMLDivElement>(null);
+
   const introSplitRef = useRef<SplitText | null>(null);
-  const descriptionSplitRef = useRef<SplitText | null>(null);
   const timelineRef = useRef<gsap.core.Timeline | null>(null);
 
   useLayoutEffect(() => {
-    if (!window.matchMedia("(min-width: 768px)").matches) return;
+    if (!window.matchMedia("(min-width: 1024px)").matches) {
+      return;
+    }
 
     const intro = introRef.current;
-    const description = descriptionRef.current;
-    if (!intro || !description) return;
+    if (!intro) return;
 
     const introSplit = SplitText.create(intro, {
       type: "lines",
       mask: "lines",
       autoSplit: true,
     });
-    const descriptionSplit = SplitText.create(description, {
-      type: "lines",
-      mask: "lines",
-      autoSplit: true,
-    });
 
     introSplitRef.current = introSplit;
-    descriptionSplitRef.current = descriptionSplit;
 
     return () => {
       timelineRef.current?.kill();
       introSplit.revert();
-      descriptionSplit.revert();
       introSplitRef.current = null;
-      descriptionSplitRef.current = null;
     };
-  }, [project.slug, project.intro, project.description]);
+  }, [project.slug, project.intro]);
 
   useLayoutEffect(() => {
     const root = rootRef.current;
     const link = linkRef.current;
-    const divider = dividerRef.current;
+
     if (!root) return;
 
     timelineRef.current?.kill();
 
     const introLines = introSplitRef.current?.lines ?? [];
-    const descriptionLines = descriptionSplitRef.current?.lines ?? [];
+
     const credits = gsap.utils.toArray<HTMLElement>("[data-credit]", root);
-    const labels = gsap.utils.toArray<HTMLElement>("[data-info-label]", root);
-    const textParts = [...introLines, ...descriptionLines];
-    const animated = [...textParts, ...credits, ...labels];
 
     gsap.killTweensOf([
       root,
-      ...animated,
+      ...introLines,
+      ...credits,
       ...(link ? [link] : []),
-      ...(divider ? [divider] : []),
     ]);
 
     const reducedMotion = window.matchMedia(
@@ -110,38 +98,59 @@ export default function ProjectDetailsInfo({
         });
       }
 
-      if (divider) {
-        gsap.to(divider, {
-          autoAlpha: 0,
-          duration,
-          overwrite: true,
+      return;
+    }
+
+    if (reducedMotion) {
+      gsap.set(root, {
+        autoAlpha: 1,
+        y: 0,
+      });
+
+      gsap.set([...introLines, ...credits], {
+        autoAlpha: 1,
+        y: 0,
+        yPercent: 0,
+      });
+
+      if (link) {
+        gsap.set(link, {
+          autoAlpha: 1,
+          y: 0,
         });
       }
 
       return;
     }
 
-    if (reducedMotion) {
-      gsap.set(root, { autoAlpha: 1, y: 0 });
-      gsap.set(animated, { autoAlpha: 1, y: 0, yPercent: 0 });
-      if (link) gsap.set(link, { autoAlpha: 1, y: 0 });
-      if (divider) gsap.set(divider, { autoAlpha: 1, scaleX: 1 });
-      return;
-    }
+    gsap.set(root, {
+      autoAlpha: 1,
+      y: 0,
+    });
 
-    gsap.set(root, { autoAlpha: 1, y: 0 });
-    gsap.set(textParts, { autoAlpha: 0, yPercent: 35 });
-    gsap.set([...credits, ...labels], { autoAlpha: 0, y: 13 });
-    if (link) gsap.set(link, { autoAlpha: 0, y: 12 });
-    if (divider) {
-      gsap.set(divider, {
+    gsap.set(introLines, {
+      autoAlpha: 0,
+      yPercent: 35,
+    });
+
+    gsap.set(credits, {
+      autoAlpha: 0,
+      y: 14,
+    });
+
+    if (link) {
+      gsap.set(link, {
         autoAlpha: 0,
-        scaleX: 0,
-        transformOrigin: "left center",
+        y: 12,
       });
     }
 
-    const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
+    const tl = gsap.timeline({
+      defaults: {
+        ease: "power3.out",
+      },
+    });
+
     timelineRef.current = tl;
 
     if (introLines.length) {
@@ -150,36 +159,10 @@ export default function ProjectDetailsInfo({
         {
           autoAlpha: 1,
           yPercent: 0,
-          duration: 0.78,
-          stagger: 0.06,
+          duration: 0.85,
+          stagger: 0.065,
         },
         0,
-      );
-    }
-
-    if (descriptionLines.length) {
-      tl.to(
-        descriptionLines,
-        {
-          autoAlpha: 1,
-          yPercent: 0,
-          duration: 0.8,
-          stagger: 0.035,
-        },
-        0.13,
-      );
-    }
-
-    if (labels.length) {
-      tl.to(
-        labels,
-        {
-          autoAlpha: 1,
-          y: 0,
-          duration: 0.7,
-          stagger: 0.05,
-        },
-        0.03,
       );
     }
 
@@ -190,21 +173,9 @@ export default function ProjectDetailsInfo({
           autoAlpha: 1,
           y: 0,
           duration: 0.75,
-          stagger: 0.075,
+          stagger: 0.07,
         },
-        0.09,
-      );
-    }
-
-    if (divider) {
-      tl.to(
-        divider,
-        {
-          autoAlpha: 1,
-          scaleX: 1,
-          duration: 0.65,
-        },
-        0.13,
+        0.2,
       );
     }
 
@@ -229,70 +200,130 @@ export default function ProjectDetailsInfo({
 
   return (
     <>
-      {/* The title is animated by ImageCard, not duplicated here. */}
+      {/* PROJECT INFORMATION */}
       <div
         ref={rootRef}
         aria-hidden={hidden}
         className="pointer-events-none fixed inset-0 z-[85] text-[#ece9e4] opacity-0 max-md:hidden"
       >
-        {/* LEFT — one coherent editorial text block. */}
+        {/* INTRODUCTION — LG AND ABOVE */}
         <aside
           aria-label={`${project.title} introduction`}
-          className="fixed left-[3.5vw] top-[35svh] w-[19.5vw]"
+          className="
+            fixed
+            left-[3.5vw]
+            top-[28svh]
+            hidden
+            w-[22vw]
+            lg:block
+            xl:top-[32svh]
+            xl:w-[19.5vw]
+          "
         >
           <p
-            data-info-label
-            className="mb-[clamp(15px,2svh,24px)] text-[10px] font-medium uppercase leading-none tracking-[0.12em] text-white/55"
-          >
-            PROJECT / {project.number}
-          </p>
-
-          <p
             ref={introRef}
-            className="text-[clamp(17px,1.25vw,23px)] font-medium leading-[1.25] tracking-[-0.03em]"
+            className="
+              text-[clamp(15px,1.55vw,27px)]
+              font-medium
+              normal-case
+              leading-[1.3]
+              tracking-[-0.035em]
+              text-[#ece9e4]
+              xl:text-[clamp(20px,1.55vw,29px)]
+            "
           >
             {sentenceCase(project.intro)}
           </p>
-
-          <p
-            ref={descriptionRef}
-            className="mt-[clamp(36px,6svh,74px)] max-w-[370px] text-[clamp(12px,0.86vw,15px)] leading-[1.65] tracking-[-0.01em] text-white/65"
-          >
-            {sentenceCase(project.description)}
-          </p>
         </aside>
 
-        {/* RIGHT — stacked credits in the lower-right corner. */}
-        <aside
-          aria-label={`${project.title} credits`}
-          className="fixed bottom-[10svh] right-[3.5vw] w-[19.5vw]"
+        {/* CREDITS */}
+        <dl
+          className="
+            fixed
+            bottom-[5.5svh]
+            right-[3.5vw]
+            flex
+            flex-row
+            items-baseline
+            gap-x-[clamp(12px,2vw,26px)]
+
+            lg:bottom-[16svh]
+            lg:left-[3.5vw]
+            lg:right-auto
+            lg:w-[22vw]
+            lg:flex-col
+            lg:items-start
+            lg:gap-y-[clamp(10px,1.5svh,18px)]
+
+            xl:w-[19.5vw]
+          "
         >
-          <dl className="flex flex-col gap-y-[clamp(18px,2.7svh,30px)]">
-            {[
-              { label: "Development", value: project.dev },
-              { label: "Design", value: project.design },
-              { label: "Year", value: project.year },
-            ].map((item) => (
-              <div key={item.label} data-credit className="min-w-0">
-                <dt className="text-[10px] font-medium uppercase leading-none tracking-[0.12em] text-white">
-                  {item.label}:
-                </dt>
-                <dd className="mt-3 text-[clamp(12px,0.9vw,16px)] font-medium leading-[1.3] tracking-[-0.02em]">
-                  {item.value}
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </aside>
+          {[
+            {
+              label: "Design:",
+              value: project.design,
+            },
+            {
+              label: "Development:",
+              value: project.dev,
+            },
+            {
+              label: "Year:",
+              value: project.year,
+            },
+          ].map((item) => (
+            <div
+              key={item.label}
+              data-credit
+              className="flex shrink-0 items-baseline gap-x-1 whitespace-nowrap"
+            >
+              <dt
+                className="
+                  text-[clamp(11px,0.82vw,14px)]
+                  font-medium
+                  leading-[1.4]
+                  tracking-[-0.01em]
+                "
+              >
+                {item.label}
+              </dt>
+
+              <dd
+                className="
+                  text-[clamp(11px,0.9vw,16px)]
+                  font-medium
+                  leading-[1.4]
+                  tracking-[-0.02em]
+                  text-[#ece9e4]
+                "
+              >
+                {item.value}
+              </dd>
+            </div>
+          ))}
+        </dl>
+
+        {/* NAVIGATION HINT — LG AND ABOVE */}
+        <p
+          aria-hidden="true"
+          className="
+            pointer-events-none
+            fixed
+            bottom-[5.5svh]
+            right-[3.5vw]
+            hidden
+            text-[12px]
+            font-medium
+            tracking-[-0.01em]
+            text-white/55
+            lg:block
+          "
+        >
+          Scroll or click to navigate
+        </p>
       </div>
 
-      {/* Hairline above the live link on the left, as before. */}
-      <div
-        ref={dividerRef}
-        aria-hidden="true"
-        className="pointer-events-none fixed bottom-[20svh] left-0 z-[86] h-px w-[26vw] origin-left bg-white/20 opacity-0 max-md:hidden"
-      />
-
+      {/* WEBSITE LINK */}
       {project.liveUrl.trim() && (
         <a
           ref={linkRef}
@@ -303,11 +334,16 @@ export default function ProjectDetailsInfo({
           aria-label={`View ${project.title} live website`}
           aria-hidden={hidden}
           tabIndex={hidden ? -1 : 0}
-          className={`group fixed bottom-[5.5svh] right-[77.5vw] max-md:right-auto z-[88] inline-flex items-center gap-4 text-[#ece9e4] opacity-0 max-md:bottom-[5svh] max-md:left-[5vw] ${hidden ? "pointer-events-none" : "pointer-events-auto cursor-pointer"}`}
+          className={`group fixed bottom-[5.5svh] left-[3.5vw] z-[88] inline-flex items-center gap-4 text-[#ece9e4] opacity-0 max-md:bottom-[5svh] max-md:left-[5vw] ${
+            hidden
+              ? "pointer-events-none"
+              : "pointer-events-auto cursor-pointer"
+          }`}
         >
-          <span className="text-[12px] font-medium tracking-[-0.01em]">
+          <span className="text-[12px] font-medium leading-none tracking-[-0.01em]">
             View live project
           </span>
+
           <svg
             width="22"
             height="22"

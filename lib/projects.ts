@@ -23,11 +23,11 @@ export const PROJECTS: Project[] = [
     dev: "Jonas Nygaard",
     design: "Jonas Nygaard",
     intro:
-      "AN INTERACTIVE PORTFOLIO BUILT AROUND DESIGN, TYPOGRAPHY AND MOTION.",
+      "AN INTERACTIVE PORTFOLIO BUILT AROUND DESIGN, TYPOGRAPHY AND MOTION, COMBINING BOLD VISUALS, FLUID ANIMATIONS AND THOUGHTFUL INTERACTIONS TO CREATE A DISTINCTIVE DIGITAL EXPERIENCE.",
     description:
       "A DIGITAL HOME FOR SELECTED WORK IN VISUAL IDENTITY, PRINT, TYPOGRAPHY AND EXPERIMENTAL DESIGN. AN EDITORIAL LAYOUT WITH SUBTLE MOTION AND INTERACTIVE DETAILS.",
-    images: [1, 2, 3, 4, 5].map(
-      (index) => `/work/ker-${index}.jpg`,
+    images: [0, 1, 2, 3, 4].map(
+      (index) => `/work/keri-${index}.jpg`,
     ),
     liveUrl: "https://www.kerimovdesigns.com/",
   },
@@ -40,11 +40,11 @@ export const PROJECTS: Project[] = [
     dev: "Jonas Nygaard",
     design: "Jonas Nygaard",
     intro:
-      "A CONSIDERED DIGITAL SHOP EXPERIENCE FOR LIGHTING AND OBJECTS.",
+      "A CONSIDERED DIGITAL SHOPPING EXPERIENCE FOR LIGHTING AND OBJECTS, COMBINING THOUGHTFUL DESIGN, INTUITIVE NAVIGATION AND A CALM, REFINED VISUAL IDENTITY.",
     description:
       "A MINIMAL, PRODUCT-FOCUSED COMMERCE EXPERIENCE THAT PUTS MATERIALS, FORM AND PHOTOGRAPHY FIRST. BUILT FOR A QUIET, TACTILE FEEL.",
-    images: [1, 2, 3, 4, 5].map(
-      (index) => `/work/cal-${index}.jpg`,
+    images: [0, 1, 2, 3, 4].map(
+      (index) => `/work/cale-${index}.jpg`,
     ),
     liveUrl: "https://calero.studio/",
   },

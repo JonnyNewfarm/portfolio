@@ -22,15 +22,7 @@ type FocusRef = MutableRefObject<{
   value: number;
 }>;
 
-type RatiosRef = MutableRefObject<number[]>;
-
-type ScrollRef = MutableRefObject<{
-  current: number;
-  target: number;
-  returning: boolean;
-}>;
-
-type Size = {
+type ScreenSize = {
   width: number;
   height: number;
 };
@@ -42,74 +34,141 @@ type ImageRect = {
   height: number;
 };
 
-// ELASTIC STRETCH SETTINGS
-const ELASTIC_STRETCH = 0.1;
-const ELASTIC_SQUASH = 0.018;
-const ELASTIC_DRAG = 0.025;
-const ELASTIC_DEPTH = 0.045;
+type Props = {
+  index: number;
+  firstTarget: MutableRefObject<HTMLDivElement | null>;
+  handoff: ProgressRef;
+  focus: FocusRef;
+  interactive: boolean;
+  scrollControl: MutableRefObject<ScrollControl | null>;
+  onReady: () => void;
+  onFocusImage: (key: string) => void;
+  onUnfocusImage: () => void;
+  hitTestRef: MutableRefObject<((x: number, y: number) => boolean) | null>;
+};
 
-const galleryWidth = (size: Size) =>
-  size.width * (size.width < 768 ? 0.86 : 0.48);
+const MOVE_SPEED = 6;
+const BEND_DURATION = 0.65;
+const BEND_STRENGTH = 0.035;
+const BEND_STRETCH = 0.018;
+const THUMB_STAGGER = 0.12;
+const THUMB_FADE_DURATION = 0.9;
+const THUMB_OFFSET_Y = 22;
 
-const positiveMod = (n: number, divisor: number) =>
-  ((n % divisor) + divisor) % divisor;
+// Layout
+const MAIN_WIDTH = 0.45;
+const MAIN_HEIGHT = 0.75;
 
-function cycleHeight(size: Size, ratios: number[]) {
-  if (!ratios.length) return 1;
+const THUMB_MAX_WIDTH = 0.155;
+const THUMB_TOTAL_HEIGHT = 0.64;
+const THUMB_GAP = 0.016;
+const THUMB_RIGHT = 0.945;
 
-  const width = galleryWidth(size);
-  const gap = size.height * 0.01;
+function getRect(
+  size: ScreenSize,
+  aspect: number,
+  imageIndex: number,
+  selectedImage: number,
+  allAspects: number[],
+): ImageRect {
+  const { width, height } = size;
+  const mobile = width < 768;
+  const safeAspect = Math.max(0.2, aspect);
 
-  return (
-    ratios.reduce((sum, ratio) => sum + width / Math.max(0.2, ratio), 0) +
-    ratios.length * gap
-  );
-}
+  // MAIN IMAGE
+  if (imageIndex === selectedImage) {
+    const maxWidth = width * (mobile ? 0.86 : MAIN_WIDTH);
+    const maxHeight = height * (mobile ? 0.58 : MAIN_HEIGHT);
 
-function galleryRects(
-  size: Size,
-  ratios: number[],
-  scroll: number,
-): ImageRect[] {
-  const width = galleryWidth(size);
-  const gap = size.height * 0.01;
-  const x = size.width / 2;
-
-  const heights = ratios.map((ratio) => width / Math.max(0.2, ratio));
-
-  const cycle = cycleHeight(size, ratios);
-
-  let y = size.height / 2;
-
-  return heights.map((height, i) => {
-    if (i > 0) {
-      y += heights[i - 1] / 2 + gap + height / 2;
-    }
-
-    const topBoundary = -height / 2 - gap / 2;
-
-    const wrappedY = positiveMod(y - scroll - topBoundary, cycle) + topBoundary;
+    const imageWidth = Math.min(maxWidth, maxHeight * safeAspect);
 
     return {
-      x,
-      y: wrappedY,
-      width,
-      height,
+      x: width * 0.5,
+      y: height * (mobile ? 0.41 : 0.5),
+      width: imageWidth,
+      height: imageWidth / safeAspect,
     };
-  });
-}
+  }
 
-function focusedRect(size: Size, ratio: number): ImageRect {
-  const width = Math.min(
-    size.width * (size.width < 768 ? 0.88 : 0.68),
-    size.height * 0.84 * ratio,
+  const thumbnailIndices = allAspects
+    .map((_, i) => i)
+    .filter((i) => i !== selectedImage);
+
+  const thumbnailIndex = thumbnailIndices.indexOf(imageIndex);
+
+  const thumbnailCount = thumbnailIndices.length;
+
+  if (mobile) {
+    const gap = width * 0.012;
+    const availableWidth = width * 0.86;
+
+    const slotWidth =
+      (availableWidth - gap * (thumbnailCount - 1)) /
+      Math.max(1, thumbnailCount);
+
+    const smallestAspect = Math.min(
+      ...thumbnailIndices.map((i) => Math.max(0.2, allAspects[i] ?? 1)),
+    );
+
+    // Same width, with enough vertical room
+    // for the tallest thumbnail.
+    const sharedWidth = Math.min(slotWidth, height * 0.13 * smallestAspect);
+
+    return {
+      x: width * 0.07 + slotWidth / 2 + thumbnailIndex * (slotWidth + gap),
+      y: height * 0.81,
+      width: sharedWidth,
+      height: sharedWidth / safeAspect,
+    };
+  }
+
+  // DESKTOP THUMBNAILS
+  // Calculate a single shared width that allows
+  // all four images to fit vertically without cropping.
+
+  const gap = height * THUMB_GAP;
+  const maxColumnHeight = height * THUMB_TOTAL_HEIGHT;
+  const maxThumbnailWidth = width * THUMB_MAX_WIDTH;
+
+  const heightUnits = thumbnailIndices.reduce(
+    (sum, i) => sum + 1 / Math.max(0.2, allAspects[i] ?? 1),
+    0,
   );
 
+  const availableImageHeight = Math.max(
+    1,
+    maxColumnHeight - gap * (thumbnailCount - 1),
+  );
+
+  const sharedWidth = Math.min(
+    maxThumbnailWidth,
+    availableImageHeight / Math.max(0.2, heightUnits),
+  );
+
+  const thumbnailHeights = thumbnailIndices.map(
+    (i) => sharedWidth / Math.max(0.2, allAspects[i] ?? 1),
+  );
+
+  const totalHeight =
+    thumbnailHeights.reduce((sum, h) => sum + h, 0) +
+    gap * (thumbnailCount - 1);
+
+  const precedingHeight = thumbnailHeights
+    .slice(0, thumbnailIndex)
+    .reduce((sum, h) => sum + h, 0);
+
+  const currentHeight = sharedWidth / safeAspect;
+
   return {
-    x: size.width / 2,
-    y: size.height / 2,
-    width,
-    height: width / ratio,
+    x: width * THUMB_RIGHT - sharedWidth / 2,
+    y:
+      height * 0.5 -
+      totalHeight / 2 +
+      precedingHeight +
+      thumbnailIndex * gap +
+      currentHeight / 2,
+    width: sharedWidth,
+    height: currentHeight,
   };
 }
 
@@ -124,291 +183,283 @@ function contains(rect: ImageRect, x: number, y: number) {
 
 function GalleryPlane({
   src,
-  index,
-  ratios,
-  scroll,
-  focus,
+  imageIndex,
+  selectedImage,
   handoff,
-  onImageLoaded,
+  ratios,
   onFirstFrame,
+  onImageLoaded,
+  hitRects,
 }: {
   src: string;
-  index: number;
-  ratios: RatiosRef;
-  scroll: ScrollRef;
-  focus: FocusRef;
+  imageIndex: number;
+  selectedImage: number;
   handoff: ProgressRef;
-  onImageLoaded: (index: number, ratio: number) => void;
+  ratios: MutableRefObject<number[]>;
   onFirstFrame: () => void;
+  onImageLoaded: (i: number, aspect: number) => void;
+  hitRects: MutableRefObject<Map<number, ImageRect>>;
 }) {
   const texture = useTexture(src);
-
-  const mesh = useRef<THREE.Mesh>(null);
-  const frames = useRef(0);
-  const reported = useRef(false);
-
-  const previousElastic = useRef({
-    amount: 0,
-    axisX: 0,
-    axisY: 1,
-    direction: 1,
-  });
-
-  const previousProgress = useRef(0);
-  const movementDirection = useRef(1);
-
-  const blurredTexture = useRef<THREE.CanvasTexture | null>(null);
-
   const { gl } = useThree();
 
-  const ratio = useMemo(() => {
-    const image = texture.image as
-      | { width?: number; height?: number }
-      | undefined;
-
-    return image?.width && image?.height ? image.width / image.height : 0.8;
-  }, [texture]);
-
-  const geometry = useMemo(
-    () => new THREE.PlaneGeometry(1, 1 / ratio, 32, 40),
-    [ratio],
-  );
+  const mesh = useRef<THREE.Mesh>(null);
+  const initialized = useRef(false);
+  const frames = useRef(0);
+  const readySent = useRef(false);
+  const thumbnailReveal = useRef({
+    started: false,
+    elapsed: 0,
+  });
+  const geometry = useMemo(() => new THREE.PlaneGeometry(1, 1, 24, 24), []);
 
   const positions = useMemo(
     () => geometry.attributes.position as THREE.BufferAttribute,
     [geometry],
   );
 
-  const uvs = useMemo(
-    () => geometry.attributes.uv as THREE.BufferAttribute,
-    [geometry],
+  const originalPositions = useMemo(
+    () => Float32Array.from(positions.array),
+    [positions],
   );
 
-  useEffect(() => {
-    onImageLoaded(index, ratio);
+  const previousSelected = useRef(selectedImage);
 
-    texture.colorSpace = THREE.SRGBColorSpace;
+  const bend = useRef({
+    elapsed: BEND_DURATION,
+    strength: 0,
+    directionX: 1,
+    directionY: 0,
+    dirty: false,
+  });
 
-    texture.anisotropy = Math.min(8, gl.capabilities.getMaxAnisotropy());
-
-    texture.needsUpdate = true;
-
-    return () => {
-      geometry.dispose();
-    };
-  }, [geometry, gl, index, onImageLoaded, ratio, texture]);
-
-  useEffect(() => {
+  const aspect = useMemo(() => {
     const image = texture.image as
-      | (CanvasImageSource & {
-          width: number;
-          height: number;
-        })
+      | { width?: number; height?: number }
       | undefined;
 
-    if (!image?.width || !image?.height) return;
-
-    let generated: THREE.CanvasTexture | null = null;
-
-    try {
-      const canvas = document.createElement("canvas");
-
-      canvas.width = Math.max(1, Math.min(512, image.width));
-
-      canvas.height = Math.max(
-        1,
-        Math.round((canvas.width * image.height) / image.width),
-      );
-
-      const context = canvas.getContext("2d");
-
-      if (context && "filter" in context) {
-        context.filter = "blur(7px)";
-
-        context.drawImage(image, 0, 0, canvas.width, canvas.height);
-
-        context.filter = "none";
-
-        generated = new THREE.CanvasTexture(canvas);
-
-        generated.colorSpace = THREE.SRGBColorSpace;
-        generated.minFilter = THREE.LinearFilter;
-        generated.magFilter = THREE.LinearFilter;
-        generated.generateMipmaps = false;
-
-        blurredTexture.current = generated;
-      }
-    } catch {}
-
-    return () => {
-      blurredTexture.current = null;
-      generated?.dispose();
-    };
+    return image?.width && image?.height ? image.width / image.height : 1;
   }, [texture]);
 
-  useFrame(({ size }) => {
+  useEffect(() => {
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.anisotropy = Math.min(8, gl.capabilities.getMaxAnisotropy());
+    texture.needsUpdate = true;
+
+    onImageLoaded(imageIndex, aspect);
+  }, [texture, gl, onImageLoaded, imageIndex, aspect]);
+
+  useEffect(() => {
+    return () => {
+      hitRects.current.delete(imageIndex);
+    };
+  }, [hitRects, imageIndex]);
+
+  useFrame(({ size }, delta) => {
     const node = mesh.current;
     if (!node) return;
 
-    const rect = galleryRects(size, ratios.current, scroll.current.current)[
-      index
-    ];
+    const target = getRect(
+      size,
+      aspect,
+      imageIndex,
+      selectedImage,
+      ratios.current,
+    );
 
-    if (!rect) return;
+    const reveal = thumbnailReveal.current;
 
-    const active = focus.current.key === String(index);
-
-    const t = active ? THREE.MathUtils.clamp(focus.current.value, 0, 1) : 0;
-
-    const end = focusedRect(size, ratio);
-
-    const x = THREE.MathUtils.lerp(rect.x, end.x, t);
-
-    const y = THREE.MathUtils.lerp(rect.y, end.y, t);
-
-    const width = THREE.MathUtils.lerp(rect.width, end.width, t);
-
-    node.visible =
-      active ||
-      (rect.y + rect.height / 2 > -120 &&
-        rect.y - rect.height / 2 < size.height + 120);
-
-    node.position.set(x - size.width / 2, size.height / 2 - y, active ? 3 : 0);
-
-    node.scale.set(width, width, 1);
-    node.rotation.set(0, 0, 0);
-
-    node.renderOrder = active ? 300 : index + 1;
-
-    const material = node.material as THREE.MeshBasicMaterial;
-
-    const behindFocus = focus.current.key !== null && !active;
-
-    const desiredMap =
-      behindFocus && focus.current.value > 0.06 && blurredTexture.current
-        ? blurredTexture.current
-        : texture;
-
-    if (material.map !== desiredMap) {
-      material.map = desiredMap;
-      material.needsUpdate = true;
+    if (!reveal.started && handoff.current.value > 0.15) {
+      reveal.started = true;
     }
 
-    material.opacity =
-      handoff.current.value *
-      (behindFocus
-        ? THREE.MathUtils.lerp(
-            1,
-            0.34,
-            THREE.MathUtils.clamp(focus.current.value, 0, 1),
-          )
-        : 1);
+    if (reveal.started) {
+      reveal.elapsed += Math.min(delta, 0.05);
+    }
 
-    // ELASTIC STRETCH
+    const isThumbnail = imageIndex > 0;
 
-    // Track whether the image is opening or closing.
-    if (active) {
-      const delta = t - previousProgress.current;
+    const delay = isThumbnail ? (imageIndex - 1) * THUMB_STAGGER : 0;
 
-      if (delta > 0.00001) {
-        movementDirection.current = 1;
-      } else if (delta < -0.00001) {
-        movementDirection.current = -1;
+    const revealProgress = isThumbnail
+      ? THREE.MathUtils.clamp(
+          (reveal.elapsed - delay) / THUMB_FADE_DURATION,
+          0,
+          1,
+        )
+      : 1;
+
+    const eased =
+      revealProgress *
+      revealProgress *
+      revealProgress *
+      (revealProgress * (revealProgress * 6 - 15) + 10);
+
+    const targetX = target.x - size.width / 2;
+
+    const targetY =
+      size.height / 2 -
+      target.y -
+      (isThumbnail ? (1 - eased) * THUMB_OFFSET_Y : 0);
+    // Detect when an image changes position.
+    if (previousSelected.current !== selectedImage) {
+      const node = mesh.current;
+
+      if (node) {
+        const dx = targetX - node.position.x;
+        const dy = targetY - node.position.y;
+        const distance = Math.hypot(dx, dy);
+
+        bend.current.elapsed = 0;
+
+        // Smaller movements get a smaller bend.
+        bend.current.strength = Math.min(1, distance / 180);
+
+        if (distance > 0.001) {
+          bend.current.directionX = dx / distance;
+          bend.current.directionY = dy / distance;
+        }
       }
-    } else {
-      movementDirection.current = 1;
+
+      previousSelected.current = selectedImage;
     }
 
-    previousProgress.current = t;
+    if (!initialized.current) {
+      node.position.set(targetX, targetY, 0);
+      node.scale.set(target.width, target.height, 1);
+      initialized.current = true;
+    } else {
+      const dt = Math.min(delta, 0.05);
 
-    // The stretch is strongest during movement,
-    // and disappears when the image reaches its target.
-    const elastic = active ? Math.sin(Math.PI * t) : 0;
+      node.position.x = THREE.MathUtils.damp(
+        node.position.x,
+        targetX,
+        MOVE_SPEED,
+        dt,
+      );
 
-    // Determine the direction from the gallery position
-    // to the fullscreen position.
-    const dx = end.x - rect.x;
-    const dy = rect.y - end.y;
+      node.position.y = THREE.MathUtils.damp(
+        node.position.y,
+        targetY,
+        MOVE_SPEED,
+        dt,
+      );
 
-    const distance = Math.hypot(dx, dy);
+      node.scale.x = THREE.MathUtils.damp(
+        node.scale.x,
+        target.width,
+        MOVE_SPEED,
+        dt,
+      );
 
-    const axisX = distance > 0.001 ? dx / distance : 0;
+      node.scale.y = THREE.MathUtils.damp(
+        node.scale.y,
+        target.height,
+        MOVE_SPEED,
+        dt,
+      );
+    }
+    // ELASTIC DIRECTIONAL BEND
 
-    const axisY = distance > 0.001 ? dy / distance : 1;
+    const b = bend.current;
 
-    const direction = movementDirection.current;
+    if (b.elapsed < BEND_DURATION) {
+      b.elapsed = Math.min(BEND_DURATION, b.elapsed + Math.min(delta, 0.05));
+    }
 
-    const previous = previousElastic.current;
+    const progress = b.elapsed / BEND_DURATION;
 
-    const needsUpdate =
-      Math.abs(elastic - previous.amount) > 0.00001 ||
-      (elastic > 0.00001 &&
-        (Math.abs(axisX - previous.axisX) > 0.00001 ||
-          Math.abs(axisY - previous.axisY) > 0.00001 ||
-          direction !== previous.direction));
+    // Bend appears during movement and disappears at rest.
+    const envelope = Math.sin(Math.PI * progress) * b.strength;
 
-    if (needsUpdate) {
-      const stretchAmount = 1 + elastic * ELASTIC_STRETCH;
-
-      const squashAmount = 1 - elastic * ELASTIC_SQUASH;
+    if (envelope > 0.0001 || b.dirty) {
+      const directionX = b.directionX;
+      const directionY = b.directionY;
 
       for (let i = 0; i < positions.count; i++) {
-        const u = uvs.getX(i);
-        const v = uvs.getY(i);
+        const baseX = originalPositions[i * 3];
+        const baseY = originalPositions[i * 3 + 1];
 
-        const baseX = u - 0.5;
-        const baseY = (v - 0.5) / ratio;
+        // Rotate the deformation into the movement direction.
+        const along = baseX * directionX + baseY * directionY;
 
-        // Split vertex position into the movement
-        // direction and the perpendicular direction.
-        const along = baseX * axisX + baseY * axisY;
+        const across = -baseX * directionY + baseY * directionX;
 
-        const across = -baseX * axisY + baseY * axisX;
+        // Curved profile across the moving image.
+        const edge = Math.min(1, Math.abs(across) * 1.8);
 
-        // Gently stretch along the movement direction.
-        const stretchedAlong = along * stretchAmount;
+        const curve = Math.pow(Math.max(0, 1 - edge * edge), 1.5);
 
-        // Very slight compression perpendicular
-        // to the movement.
-        const squeezedAcross = across * squashAmount;
+        // Centre of the image lags behind the movement.
+        const drag = BEND_STRENGTH * envelope * curve;
 
-        // Soft elastic lag in the middle of the image.
-        const centerProfile = Math.sin(u * Math.PI) * Math.sin(v * Math.PI);
+        // Very subtle elastic stretch.
+        const stretchedAlong = along * (1 + BEND_STRETCH * envelope) + drag;
+        const stretchedAcross = across * (1 - 0.008 * envelope);
 
-        const drag = -direction * elastic * ELASTIC_DRAG * centerProfile;
+        // Rotate the deformed vertices back.
+        const finalX =
+          stretchedAlong * directionX - stretchedAcross * directionY;
 
-        const finalAlong = stretchedAlong + drag;
+        const finalY =
+          stretchedAlong * directionY + stretchedAcross * directionX;
 
-        // Reconstruct the original XY coordinates.
-        const finalX = finalAlong * axisX - squeezedAcross * axisY;
-
-        const finalY = finalAlong * axisY + squeezedAcross * axisX;
-
-        // Subtle depth so the image feels like
-        // a flexible surface rather than a flat scale.
-        const finalZ = elastic * ELASTIC_DEPTH * centerProfile;
-
-        positions.setXYZ(i, finalX, finalY, finalZ);
+        positions.setXYZ(i, finalX, finalY, 0);
       }
 
       positions.needsUpdate = true;
-
-      previousElastic.current = {
-        amount: elastic,
-        axisX,
-        axisY,
-        direction,
-      };
+      b.dirty = envelope > 0.0001;
     }
 
-    if (index === 0 && !reported.current && ++frames.current >= 3) {
-      reported.current = true;
+    node.renderOrder = imageIndex === selectedImage ? 100 : 10 + imageIndex;
+
+    const material = node.material as THREE.MeshBasicMaterial;
+
+    material.opacity = handoff.current.value * eased;
+    // Start thumbnail-reveal when the gallery starts appearing.
+
+    if (handoff.current.value > 0.01) {
+      reveal.started = true;
+    }
+
+    if (reveal.started) {
+      reveal.elapsed += delta;
+    }
+
+    // The first image is the main image.
+    // Images 1–4 reveal one after another.
+    if (imageIndex === 0) {
+      material.opacity = handoff.current.value;
+    } else {
+      const delay = (imageIndex - 1) * THUMB_STAGGER;
+
+      const progress = THREE.MathUtils.clamp(
+        (reveal.elapsed - delay) / THUMB_FADE_DURATION,
+        0,
+        1,
+      );
+
+      // Smooth ease-in-out
+      const eased = progress * progress * (3 - 2 * progress);
+
+      material.opacity = handoff.current.value * eased;
+    }
+
+    hitRects.current.set(imageIndex, {
+      x: node.position.x + size.width / 2,
+      y: size.height / 2 - node.position.y,
+      width: node.scale.x,
+      height: node.scale.y,
+    });
+
+    if (imageIndex === 0 && !readySent.current && ++frames.current >= 3) {
+      readySent.current = true;
       onFirstFrame();
     }
   });
 
   return (
-    <mesh ref={mesh} geometry={geometry} visible={false} raycast={() => {}}>
+    <mesh ref={mesh} geometry={geometry} raycast={() => {}}>
       <meshBasicMaterial
         map={texture}
         color="white"
@@ -423,139 +474,74 @@ function GalleryPlane({
   );
 }
 
-function Planes({
-  sources,
-  ratios,
-  scroll,
-  focus,
-  handoff,
-  onImageLoaded,
-  onFirstFrame,
-}: {
-  sources: string[];
-  ratios: RatiosRef;
-  scroll: ScrollRef;
-  focus: FocusRef;
-  handoff: ProgressRef;
-  onImageLoaded: (index: number, ratio: number) => void;
-  onFirstFrame: () => void;
-}) {
-  useFrame(({ size }, delta) => {
-    if (scroll.current.returning || focus.current.key !== null) {
-      return;
-    }
-
-    const s = scroll.current;
-
-    s.current = THREE.MathUtils.damp(
-      s.current,
-      s.target,
-      12,
-      Math.min(delta, 0.05),
-    );
-
-    const cycle = cycleHeight(size, ratios.current);
-
-    if (cycle > 1 && Math.abs(s.current) > cycle * 3) {
-      const turns = Math.trunc(s.current / cycle);
-
-      s.current -= turns * cycle;
-      s.target -= turns * cycle;
-    }
-  });
-
-  return (
-    <>
-      {sources.map((src, i) => (
-        <Suspense key={`${i}-${src}`} fallback={null}>
-          <GalleryPlane
-            src={src}
-            index={i}
-            ratios={ratios}
-            scroll={scroll}
-            focus={focus}
-            handoff={handoff}
-            onImageLoaded={onImageLoaded}
-            onFirstFrame={onFirstFrame}
-          />
-        </Suspense>
-      ))}
-    </>
-  );
-}
-
 export default function GalleryThreeImages({
   index,
   firstTarget,
   handoff,
-  focus,
   interactive,
   scrollControl,
   onReady,
-  onFocusImage,
-  onUnfocusImage,
   hitTestRef,
-}: {
-  index: number;
-  firstTarget: MutableRefObject<HTMLDivElement | null>;
-  handoff: ProgressRef;
-  focus: FocusRef;
-  interactive: boolean;
-  scrollControl: MutableRefObject<ScrollControl | null>;
-  onReady: () => void;
-  onFocusImage: (key: string) => void;
-  onUnfocusImage: () => void;
-  hitTestRef: MutableRefObject<((x: number, y: number) => boolean) | null>;
-}) {
+}: Props) {
   const sources = useMemo(() => PROJECTS[index].images.slice(0, 5), [index]);
 
-  const ratios = useRef<number[]>(sources.map(() => 0.8));
+  const [activeImage, setActiveImage] = useState(0);
+  const activeRef = useRef(0);
 
-  const scroll = useRef({
-    current: 0,
-    target: 0,
-    returning: false,
-  });
+  const ratios = useRef<number[]>(sources.map(() => 1));
 
-  const [firstRatio, setFirstRatio] = useState(0.8);
+  const hitRects = useRef(new Map<number, ImageRect>());
+  const ready = useRef(false);
 
-  const [size, setSize] = useState<Size>({
+  const returnTween = useRef<gsap.core.Tween | null>(null);
+
+  const pointerDown = useRef<{
+    id: number;
+    x: number;
+    y: number;
+  } | null>(null);
+
+  const [firstAspect, setFirstAspect] = useState(1);
+
+  const [size, setSize] = useState<ScreenSize>({
     width: 1280,
     height: 800,
   });
 
-  const ready = useRef(false);
-
-  const touch = useRef<{
-    id: number;
-    x: number;
-    y: number;
-    lastY: number;
-  } | null>(null);
-
-  const returnTween = useRef<gsap.core.Tween | null>(null);
-
   useEffect(() => {
-    const measure = () =>
+    const updateSize = () => {
       setSize({
         width: window.innerWidth,
         height: window.innerHeight,
       });
+    };
 
-    measure();
+    updateSize();
 
-    window.addEventListener("resize", measure);
+    window.addEventListener("resize", updateSize);
 
     return () => {
-      window.removeEventListener("resize", measure);
+      window.removeEventListener("resize", updateSize);
     };
   }, []);
 
-  const onImageLoaded = useCallback((i: number, ratio: number) => {
-    ratios.current[i] = ratio;
+  const selectImage = useCallback(
+    (next: number) => {
+      if (next < 0 || next >= sources.length || next === activeRef.current) {
+        return;
+      }
+
+      activeRef.current = next;
+      setActiveImage(next);
+    },
+    [sources.length],
+  );
+
+  const onImageLoaded = useCallback((i: number, aspect: number) => {
+    ratios.current[i] = aspect;
 
     if (i === 0) {
-      setFirstRatio(ratio);
+      setFirstAspect(aspect);
     }
   }, []);
 
@@ -571,41 +557,14 @@ export default function GalleryThreeImages({
       returnToFirst(done) {
         returnTween.current?.kill();
 
-        const s = scroll.current;
-
-        const cycle = cycleHeight(size, ratios.current);
-
-        const destination = Math.round(s.current / cycle) * cycle;
-
-        const distance = Math.abs(s.current - destination);
-
-        const finish = () => {
-          s.current = 0;
-          s.target = 0;
-          s.returning = false;
+        if (activeRef.current === 0) {
           done();
-        };
-
-        if (distance < 1) {
-          finish();
           return;
         }
 
-        s.returning = true;
-        s.target = destination;
+        selectImage(0);
 
-        returnTween.current = gsap.to(s, {
-          current: destination,
-
-          duration: THREE.MathUtils.clamp(
-            distance / (size.height * 1.5),
-            0.7,
-            1.5,
-          ),
-
-          ease: "power3.inOut",
-          onComplete: finish,
-        });
+        returnTween.current = gsap.delayedCall(0.75, done);
       },
     };
 
@@ -613,202 +572,184 @@ export default function GalleryThreeImages({
       returnTween.current?.kill();
       scrollControl.current = null;
     };
-  }, [scrollControl, size]);
+  }, [scrollControl, selectImage]);
 
   useEffect(() => {
-    hitTestRef.current = (x: number, y: number) => {
-      if (!interactive || focus.current.key !== null) {
-        return false;
-      }
-
-      return galleryRects(size, ratios.current, scroll.current.current).some(
-        (rect) => contains(rect, x, y),
+    hitTestRef.current = (x, y) =>
+      interactive &&
+      Array.from(hitRects.current.values()).some((rect) =>
+        contains(rect, x, y),
       );
-    };
 
     return () => {
       hitTestRef.current = null;
     };
-  }, [hitTestRef, interactive, focus, size]);
+  }, [hitTestRef, interactive]);
 
   useEffect(() => {
-    const down = (e: PointerEvent) => {
-      if (!e.isPrimary || e.button !== 0) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (!interactive || !e.isPrimary || e.button !== 0) {
+        return;
+      }
 
-      touch.current = {
+      pointerDown.current = {
         id: e.pointerId,
         x: e.clientX,
         y: e.clientY,
-        lastY: e.clientY,
       };
     };
 
-    const move = (e: PointerEvent) => {
-      const start = touch.current;
-
-      if (!start || start.id !== e.pointerId || e.pointerType !== "touch") {
-        return;
-      }
+    const onPointerUp = (e: PointerEvent) => {
+      const start = pointerDown.current;
+      pointerDown.current = null;
 
       if (
         !interactive ||
-        focus.current.key !== null ||
-        scroll.current.returning
+        !ready.current ||
+        !start ||
+        start.id !== e.pointerId ||
+        Math.hypot(e.clientX - start.x, e.clientY - start.y) > 8
       ) {
-        return;
-      }
-
-      scroll.current.target += start.lastY - e.clientY;
-
-      start.lastY = e.clientY;
-    };
-
-    const up = (e: PointerEvent) => {
-      const start = touch.current;
-
-      if (!start || start.id !== e.pointerId) {
-        return;
-      }
-
-      touch.current = null;
-
-      if (!interactive || scroll.current.returning || !ready.current) {
-        return;
-      }
-
-      if (Math.hypot(e.clientX - start.x, e.clientY - start.y) > 10) {
         return;
       }
 
       if (
         e.target instanceof Element &&
-        e.target.closest("a,button,input,textarea,select")
+        e.target.closest("a,button,input,textarea,select,[role='button']")
       ) {
         return;
       }
 
-      const rects = galleryRects(size, ratios.current, scroll.current.current);
+      const clickedImages = Array.from(hitRects.current.entries())
+        .filter(([, rect]) => contains(rect, e.clientX, e.clientY))
+        .map(([imageIndex]) => imageIndex);
 
-      const active = focus.current.key;
+      const clicked = clickedImages.includes(activeRef.current)
+        ? activeRef.current
+        : clickedImages[0];
 
-      if (active !== null) {
-        const i = Number(active);
-        const r = rects[i];
+      if (clicked === undefined) return;
 
-        if (!r) return;
+      selectImage(
+        clicked === activeRef.current
+          ? (activeRef.current + 1) % sources.length
+          : clicked,
+      );
+    };
 
-        const t = THREE.MathUtils.clamp(focus.current.value, 0, 1);
-
-        const f = focusedRect(size, ratios.current[i]);
-
-        const moving: ImageRect = {
-          x: THREE.MathUtils.lerp(r.x, f.x, t),
-          y: THREE.MathUtils.lerp(r.y, f.y, t),
-          width: THREE.MathUtils.lerp(r.width, f.width, t),
-          height: THREE.MathUtils.lerp(r.height, f.height, t),
-        };
-
-        if (!contains(moving, e.clientX, e.clientY)) {
-          onUnfocusImage();
-        }
-
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!interactive || e.altKey || e.ctrlKey || e.metaKey) {
         return;
       }
 
-      for (let i = 0; i < rects.length; i++) {
-        if (contains(rects[i], e.clientX, e.clientY)) {
-          scroll.current.target = scroll.current.current;
-
-          onFocusImage(String(i));
-          return;
-        }
+      if (
+        e.target instanceof Element &&
+        e.target.closest(
+          "a,button,input,textarea,select,[contenteditable='true']",
+        )
+      ) {
+        return;
       }
+
+      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") {
+        return;
+      }
+
+      e.preventDefault();
+
+      const direction = e.key === "ArrowRight" ? 1 : -1;
+
+      const next =
+        (activeRef.current + direction + sources.length) % sources.length;
+
+      selectImage(next);
     };
 
-    const wheel = (e: WheelEvent) => {
+    window.addEventListener("pointerdown", onPointerDown, true);
+
+    window.addEventListener("pointerup", onPointerUp, true);
+
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      window.removeEventListener("pointerdown", onPointerDown, true);
+
+      window.removeEventListener("pointerup", onPointerUp, true);
+
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [interactive, selectImage, sources.length]);
+
+  useEffect(() => {
+    if (!interactive || sources.length < 2) return;
+
+    let accumulated = 0;
+    let lastWheelTime = 0;
+    let lastSwitchTime = -Infinity;
+    let lastDirection = 0;
+
+    const SCROLL_THRESHOLD = 45;
+    const SWITCH_COOLDOWN = 400;
+    const SCROLL_RESET = 250;
+
+    const onWheel = (e: WheelEvent) => {
       if (e.ctrlKey) return;
 
       e.preventDefault();
       e.stopImmediatePropagation();
 
-      if (
-        !interactive ||
-        focus.current.key !== null ||
-        scroll.current.returning
-      ) {
-        return;
-      }
+      const now = performance.now();
 
       const factor =
-        e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? size.height : 1;
+        e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? window.innerHeight : 1;
 
-      scroll.current.target += THREE.MathUtils.clamp(
-        e.deltaY * factor,
-        -240,
-        240,
-      );
-    };
+      const delta = e.deltaY * factor;
 
-    const cancel = () => {
-      touch.current = null;
-    };
+      if (Math.abs(delta) < 0.5) return;
 
-    const key = (e: KeyboardEvent) => {
-      if (!interactive || focus.current.key !== null) {
+      const direction = Math.sign(delta);
+
+      // Reset accumulation when scrolling stops
+      // or when direction changes.
+      if (now - lastWheelTime > SCROLL_RESET || direction !== lastDirection) {
+        accumulated = 0;
+      }
+
+      lastWheelTime = now;
+      lastDirection = direction;
+
+      // Prevent switching images too quickly.
+      if (now - lastSwitchTime < SWITCH_COOLDOWN) {
+        accumulated = 0;
         return;
       }
 
-      const step =
-        e.key === "ArrowDown"
-          ? 110
-          : e.key === "ArrowUp"
-            ? -110
-            : e.key === "PageDown"
-              ? size.height * 0.8
-              : e.key === "PageUp"
-                ? -size.height * 0.8
-                : e.key === " "
-                  ? (e.shiftKey ? -1 : 1) * size.height * 0.85
-                  : 0;
+      accumulated += THREE.MathUtils.clamp(delta, -120, 120);
 
-      if (!step) return;
+      if (Math.abs(accumulated) < SCROLL_THRESHOLD) {
+        return;
+      }
 
-      e.preventDefault();
-      scroll.current.target += step;
+      accumulated = 0;
+      lastSwitchTime = now;
+
+      const next =
+        (activeRef.current + direction + sources.length) % sources.length;
+
+      selectImage(next);
     };
 
-    window.addEventListener("pointerdown", down, true);
-
-    window.addEventListener("pointermove", move, true);
-
-    window.addEventListener("pointerup", up, true);
-
-    window.addEventListener("pointercancel", cancel, true);
-
-    window.addEventListener("keydown", key);
-
-    window.addEventListener("wheel", wheel, {
-      capture: true,
+    window.addEventListener("wheel", onWheel, {
       passive: false,
+      capture: true,
     });
 
     return () => {
-      window.removeEventListener("pointerdown", down, true);
-
-      window.removeEventListener("pointermove", move, true);
-
-      window.removeEventListener("pointerup", up, true);
-
-      window.removeEventListener("pointercancel", cancel, true);
-
-      window.removeEventListener("keydown", key);
-
-      window.removeEventListener("wheel", wheel, true);
+      window.removeEventListener("wheel", onWheel, true);
     };
-  }, [interactive, focus, onFocusImage, onUnfocusImage, size]);
+  }, [interactive, selectImage, sources.length]);
 
-  const width = galleryWidth(size);
-  const height = width / firstRatio;
+  const firstRect = getRect(size, firstAspect, 0, 0, ratios.current);
 
   return (
     <div
@@ -819,10 +760,10 @@ export default function GalleryThreeImages({
         ref={firstTarget}
         className="pointer-events-none absolute"
         style={{
-          left: size.width / 2 - width / 2,
-          top: size.height / 2 - height / 2,
-          width,
-          height,
+          left: firstRect.x - firstRect.width / 2,
+          top: firstRect.y - firstRect.height / 2,
+          width: firstRect.width,
+          height: firstRect.height,
         }}
       />
 
@@ -844,15 +785,21 @@ export default function GalleryThreeImages({
           pointerEvents: "none",
         }}
       >
-        <Planes
-          sources={sources}
-          ratios={ratios}
-          scroll={scroll}
-          focus={focus}
-          handoff={handoff}
-          onImageLoaded={onImageLoaded}
-          onFirstFrame={onFirstFrame}
-        />
+        <Suspense fallback={null}>
+          {sources.map((src, i) => (
+            <GalleryPlane
+              key={`${i}-${src}`}
+              src={src}
+              imageIndex={i}
+              selectedImage={activeImage}
+              handoff={handoff}
+              ratios={ratios}
+              onFirstFrame={onFirstFrame}
+              onImageLoaded={onImageLoaded}
+              hitRects={hitRects}
+            />
+          ))}
+        </Suspense>
       </Canvas>
     </div>
   );

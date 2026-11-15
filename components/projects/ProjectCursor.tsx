@@ -3,8 +3,12 @@
 import gsap from "gsap";
 import { useEffect, useRef, useState, type MutableRefObject } from "react";
 
-type CursorMode = "close-project" | "website" | "focus" | "close-focus";
-
+type CursorMode =
+  | "close-project"
+  | "website-near"
+  | "website"
+  | "focus"
+  | "close-focus";
 type Props = {
   focused: boolean;
   disabled: boolean;
@@ -23,8 +27,9 @@ const BASE_SPACING_EM = 0.11;
 
 const LABELS: Record<CursorMode, string> = {
   "close-project": "RETURN",
-  website: "VIEW WEBSITE",
-  focus: "INSPECT",
+  "website-near": "VIEW LIVE PROJECT",
+  website: "",
+  focus: "CHANGE IMAGE",
   "close-focus": "CLOSE",
 };
 
@@ -151,17 +156,38 @@ export default function ProjectCursor({
         return "close-focus";
       }
 
-      const belowLiveDivider =
-        window.innerWidth >= 768 &&
-        x < window.innerWidth * 0.26 &&
-        y >= window.innerHeight * 0.8;
+      const link = document.querySelector<HTMLAnchorElement>(
+        "[data-project-live-link]",
+      );
 
-      const element = document.elementFromPoint(x, y);
       if (
+        link &&
         latest.current.websiteUrl.trim() &&
-        (belowLiveDivider || element?.closest("[data-project-live-link]"))
+        link.getAttribute("aria-hidden") !== "true"
       ) {
-        return "website";
+        const rect = link.getBoundingClientRect();
+
+        // Directly over the link -> small square
+        const isOverLink =
+          x >= rect.left &&
+          x <= rect.right &&
+          y >= rect.top &&
+          y <= rect.bottom;
+
+        if (isOverLink) {
+          return "website";
+        }
+
+        // Near the link -> VIEW LIVE PROJECT
+        const distanceX = Math.max(rect.left - x, 0, x - rect.right);
+
+        const distanceY = Math.max(rect.top - y, 0, y - rect.bottom);
+
+        const distance = Math.hypot(distanceX, distanceY);
+
+        if (distance < 100) {
+          return "website-near";
+        }
       }
 
       if (latest.current.isOverImage.current?.(x, y)) {
@@ -363,6 +389,7 @@ export default function ProjectCursor({
           latest.current.onCloseProject();
           break;
 
+        case "website-near":
         case "website":
           if (latest.current.websiteUrl.trim()) {
             window.open(
@@ -486,7 +513,11 @@ export default function ProjectCursor({
                 ref={textRef}
                 className="block whitespace-nowrap font-sans text-[14px] font-semibold uppercase leading-none tracking-[0.11em] text-white will-change-transform"
               >
-                {LABELS[mode]}
+                {mode === "website" ? (
+                  <span className="block h-[11px] w-[11px] bg-white" />
+                ) : (
+                  LABELS[mode]
+                )}{" "}
               </span>
             </div>
           </div>
