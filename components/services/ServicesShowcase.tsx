@@ -64,7 +64,6 @@ export default function ServicesShowcase() {
 
   const [activeIndex, setActiveIndex] = useState(0);
 
-  // Only track scrolling while showcase is visible.
   const sectionVisible = useInView(sectionRef, {
     amount: 0,
   });
@@ -152,7 +151,7 @@ export default function ServicesShowcase() {
           xl:grid-cols-[minmax(0,1fr)_650px]
         "
       >
-        {/* TEXT */}
+        {/* TEXT + MOBILE MEDIA */}
         <div className="min-w-0 lg:pb-[38svh]">
           {services.map((service, index) => (
             <article
@@ -180,7 +179,7 @@ export default function ServicesShowcase() {
                 }}
               />
 
-              {/* MOBILE / TABLET MEDIA */}
+              {/* MOBILE / TABLET — NO REVEAL ANIMATION */}
               <div
                 className="
                   flex
@@ -284,23 +283,11 @@ function ServiceText({
   );
 }
 
-// --------------------------------------------------
-// MOBILE IMAGE / VIDEO
-// --------------------------------------------------
-
 function MobileMedia({ src, alt }: { src: string; alt: string }) {
   const ref = useRef<HTMLDivElement>(null);
-
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  const reducedMotion = useReducedMotion();
-
   const isVideo = src.endsWith(".mp4");
-
-  const visible = useInView(ref, {
-    once: true,
-    amount: 0.15,
-  });
 
   const inViewport = useInView(ref, {
     amount: 0.1,
@@ -310,69 +297,43 @@ function MobileMedia({ src, alt }: { src: string; alt: string }) {
     if (!isVideo) return;
 
     const video = videoRef.current;
-
     if (!video) return;
 
-    if (inViewport && !reducedMotion) {
+    if (inViewport) {
       video.play().catch(() => {});
     } else {
       video.pause();
     }
-  }, [isVideo, inViewport, reducedMotion]);
+  }, [isVideo, inViewport]);
 
   return (
     <div
       ref={ref}
       className="
-        relative
-        aspect-[4/4.7]
         w-[72vw]
         max-w-[380px]
-        overflow-hidden
       "
     >
-      <motion.div
-        className="absolute inset-0"
-        initial={false}
-        animate={{
-          clipPath:
-            visible || reducedMotion
-              ? "inset(0% 0% 0% 0%)"
-              : "inset(100% 0% 0% 0%)",
-          scale: visible || reducedMotion ? 1 : 1.08,
-        }}
-        transition={{
-          duration: reducedMotion ? 0 : 1.1,
-          ease,
-        }}
-      >
-        {isVideo ? (
-          <video
-            ref={videoRef}
-            src={src}
-            muted
-            loop
-            playsInline
-            preload="metadata"
-            aria-label={alt}
-            className="
-              absolute
-              inset-0
-              h-full
-              w-full
-              object-cover
-            "
-          />
-        ) : (
-          <Image
-            src={src}
-            alt={alt}
-            fill
-            sizes="72vw"
-            className="object-cover"
-          />
-        )}
-      </motion.div>
+      {isVideo ? (
+        <video
+          ref={videoRef}
+          src={src}
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          aria-label={alt}
+          className="block h-auto w-full"
+        />
+      ) : (
+        <img
+          src={src}
+          alt={alt}
+          loading="lazy"
+          decoding="async"
+          className="block h-auto w-full"
+        />
+      )}
     </div>
   );
 }

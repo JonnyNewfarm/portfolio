@@ -9,7 +9,7 @@ type Props = {
   children: ReactNode;
 };
 
-export default function ServicesSmoothScroll({ children }: Props) {
+export default function SmoothScroll({ children }: Props) {
   const lenisRef = useRef<LenisRef>(null);
 
   useEffect(() => {

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { PROJECTS } from "@/lib/projects";
+import SmoothScroll from "../services/ServicesSmoothScroll";
 
 const LINKEDIN_URL = "https://www.linkedin.com/in/jonas-nygaard-0aa767366";
 const GITHUB_URL = "https://github.com/JonnyNewfarm";
@@ -335,9 +336,13 @@ export default function MobilePortfolio() {
     }
   }, [projectIndex]);
 
-  return projectIndex >= 0 ? (
-    <MobileProjectDetail index={projectIndex} />
-  ) : (
-    <MobileHome />
+  return (
+    <SmoothScroll>
+      {projectIndex >= 0 ? (
+        <MobileProjectDetail index={projectIndex} />
+      ) : (
+        <MobileHome />
+      )}
+    </SmoothScroll>
   );
 }
