@@ -560,11 +560,11 @@ export default function SelectedWork() {
               zIndex:
                 selected === null
                   ? hovered === `cover-${index}`
-                    ? 80
-                    : 70 + index
+                    ? 40
+                    : 30 + index
                   : selected === index
                     ? 80
-                    : 50,
+                    : 40,
             }}
           >
             <Canvas
