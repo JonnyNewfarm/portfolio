@@ -27,7 +27,7 @@ const BASE_SPACING_EM = 0.11;
 
 const LABELS: Record<CursorMode, string> = {
   "close-project": "RETURN",
-  "website-near": "VIEW LIVE PROJECT",
+  "website-near": "",
   website: "",
   focus: "CHANGE IMAGE",
   "close-focus": "CLOSE",
@@ -513,11 +513,11 @@ export default function ProjectCursor({
                 ref={textRef}
                 className="block whitespace-nowrap font-sans text-[14px] font-semibold uppercase leading-none tracking-[0.11em] text-white will-change-transform"
               >
-                {mode === "website" ? (
+                {mode === "website" || mode === "website-near" ? (
                   <span className="block h-[11px] w-[11px] bg-white" />
                 ) : (
                   LABELS[mode]
-                )}{" "}
+                )}
               </span>
             </div>
           </div>

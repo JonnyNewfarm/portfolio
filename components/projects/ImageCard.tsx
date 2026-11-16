@@ -314,7 +314,7 @@ export default function ImageCard({
       }
       const small = size.width < 768;
       const detailX = size.width * (small ? 0.05 : 0.035);
-      const detailY = size.height * (small ? 0.08 : 0.09);
+      const detailY = size.height * (small ? 0.06 : 0.062);
       const detailFont = THREE.MathUtils.clamp(
         size.width * (small ? 0.068 : 0.015),
         25,

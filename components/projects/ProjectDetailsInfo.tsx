@@ -2,10 +2,7 @@
 
 import { useLayoutEffect, useRef } from "react";
 import gsap from "gsap";
-import { SplitText } from "gsap/SplitText";
 import type { Project } from "@/lib/projects";
-
-gsap.registerPlugin(SplitText);
 
 type Props = {
   project: Project;
@@ -14,20 +11,6 @@ type Props = {
   ready?: boolean;
 };
 
-function sentenceCase(value: string) {
-  const text = value.trim().toLowerCase();
-  return text ? text.charAt(0).toUpperCase() + text.slice(1) : "";
-}
-
-function compactIntro(value: string) {
-  const text = value
-    .trim()
-    .split(/,\s*combining\b/i)[0]
-    .replace(/[.\s]+$/, "");
-
-  return sentenceCase(`${text}.`);
-}
-
 export default function ProjectDetailsInfo({
   project,
   reversing,
@@ -35,34 +18,8 @@ export default function ProjectDetailsInfo({
   ready = true,
 }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
-  const introRef = useRef<HTMLParagraphElement>(null);
   const linkRef = useRef<HTMLAnchorElement>(null);
-
-  const introSplitRef = useRef<SplitText | null>(null);
   const timelineRef = useRef<gsap.core.Timeline | null>(null);
-
-  useLayoutEffect(() => {
-    if (!window.matchMedia("(min-width: 1024px)").matches) {
-      return;
-    }
-
-    const intro = introRef.current;
-    if (!intro) return;
-
-    const introSplit = SplitText.create(intro, {
-      type: "lines",
-      mask: "lines",
-      autoSplit: true,
-    });
-
-    introSplitRef.current = introSplit;
-
-    return () => {
-      timelineRef.current?.kill();
-      introSplit.revert();
-      introSplitRef.current = null;
-    };
-  }, [project.slug, project.intro]);
 
   useLayoutEffect(() => {
     const root = rootRef.current;
@@ -72,16 +29,9 @@ export default function ProjectDetailsInfo({
 
     timelineRef.current?.kill();
 
-    const introLines = introSplitRef.current?.lines ?? [];
+    const details = gsap.utils.toArray<HTMLElement>("[data-detail]", root);
 
-    const credits = gsap.utils.toArray<HTMLElement>("[data-credit]", root);
-
-    gsap.killTweensOf([
-      root,
-      ...introLines,
-      ...credits,
-      ...(link ? [link] : []),
-    ]);
+    gsap.killTweensOf([root, ...details, ...(link ? [link] : [])]);
 
     const reducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
@@ -116,10 +66,9 @@ export default function ProjectDetailsInfo({
         y: 0,
       });
 
-      gsap.set([...introLines, ...credits], {
+      gsap.set(details, {
         autoAlpha: 1,
         y: 0,
-        yPercent: 0,
       });
 
       if (link) {
@@ -137,12 +86,7 @@ export default function ProjectDetailsInfo({
       y: 0,
     });
 
-    gsap.set(introLines, {
-      autoAlpha: 0,
-      yPercent: 35,
-    });
-
-    gsap.set(credits, {
+    gsap.set(details, {
       autoAlpha: 0,
       y: 14,
     });
@@ -162,22 +106,9 @@ export default function ProjectDetailsInfo({
 
     timelineRef.current = tl;
 
-    if (introLines.length) {
+    if (details.length) {
       tl.to(
-        introLines,
-        {
-          autoAlpha: 1,
-          yPercent: 0,
-          duration: 0.85,
-          stagger: 0.065,
-        },
-        0,
-      );
-    }
-
-    if (credits.length) {
-      tl.to(
-        credits,
+        details,
         {
           autoAlpha: 1,
           y: 0,
@@ -207,145 +138,53 @@ export default function ProjectDetailsInfo({
 
   const hidden = !ready || focused || reversing;
 
+  const textClass =
+    "text-[clamp(16px,1.1vw,21px)] font-medium leading-none tracking-[-0.01em]";
+
   return (
     <>
-      {/* PROJECT INFORMATION */}
       <div
         ref={rootRef}
         aria-hidden={hidden}
-        className="pointer-events-none fixed inset-0 z-[85] text-[#ece9e4] opacity-0 max-md:hidden"
+        className="
+          pointer-events-none
+          fixed
+          inset-0
+          z-[85]
+          text-[#ece9e4]
+          opacity-0
+          max-md:hidden
+        "
       >
-        {/* INTRODUCTION — BOTTOM CENTER */}
-        <aside
-          aria-label={`${project.title} introduction`}
-          className="
+        {/* YEAR — TOP RIGHT */}
+        <div
+          data-detail
+          className={`
             fixed
-            bottom-[4svh]
-left-[60%]
--translate-x-1/2            hidden
-            w-[min(44vw,640px)]
-            items-center
-            justify-center
-            lg:flex
-          "
-        >
-          <p
-            ref={introRef}
-            className="
-              w-full
-              truncate
-              text-center
-              text-[16px]
-              font-medium
-              tracking-[-0.01em]
-              text-[#ece9e4]
-            "
-          >
-            {compactIntro(project.intro)}
-          </p>
-        </aside>
-
-        {/* CREDITS */}
-        <dl
-          className="
-  fixed
-  bottom-[4.5svh]
-  right-[3.5vw]
-  flex
-  flex-row
-  items-baseline
-  gap-x-[clamp(12px,2vw,26px)]
-
-  lg:top-1/2
-  lg:bottom-auto
-  lg:left-[3.5vw]
-  lg:right-auto
-  lg:w-[22vw]
-  lg:-translate-y-1/2
-  lg:flex-col
-  lg:items-start
-  lg:gap-y-[clamp(10px,1.5svh,18px)]
-
-  xl:w-[19.5vw]
-"
-        >
-          {[
-            {
-              label: "Design:",
-              value: project.design,
-            },
-            {
-              label: "Development:",
-              value: project.dev,
-            },
-            {
-              label: "Year:",
-              value: project.year,
-            },
-          ].map((item) => (
-            <div
-              key={item.label}
-              data-credit
-              className="
-    flex
-    shrink-0
-    items-baseline
-    gap-x-1
-    whitespace-nowrap
-    lg:flex-col
-    lg:items-start
-    lg:gap-y-1
-  "
-            >
-              <dt
-                className="
-                  text-[clamp(11px,0.82vw,14px)]
-                  font-medium
-                  leading-[1.4]
-                  tracking-[-0.01em]
-                "
-              >
-                {item.label}
-              </dt>
-
-              <dd
-                className="
-                  text-[18px]
-                  font-medium
-                  leading-[1.4]
-                  tracking-[-0.02em]
-                  text-[#ece9e4]
-                "
-              >
-                {item.value}
-              </dd>
-            </div>
-          ))}
-        </dl>
-
-        {/* NAVIGATION HINT — LG AND ABOVE */}
-        <p
-          aria-hidden="true"
-          className="
-            pointer-events-none
-            fixed
-            bottom-[4svh]
+            top-[4svh]
             right-[3.5vw]
-            hidden
-            h-[22px]
-            items-center
-            text-[14px]
-            font-medium
-            tracking-[-0.01em]
-            text-white
-            lg:flex
-          "
+            ${textClass}
+          `}
         >
-          Scroll or click to navigate
-        </p>
+          {project.year}
+        </div>
+
+        {/* DESIGN & DEV — BOTTOM RIGHT */}
+        <div
+          data-detail
+          className={`
+            fixed
+            right-[3.5vw]
+            bottom-[4.5svh]
+            whitespace-nowrap
+            ${textClass}
+          `}
+        >
+          Design & Dev — {project.design}
+        </div>
       </div>
 
-      {/* WEBSITE LINK */}
+      {/* WEBSITE LINK — BOTTOM LEFT */}
       {project.liveUrl.trim() && (
         <a
           ref={linkRef}
@@ -356,19 +195,40 @@ left-[60%]
           aria-label={`View ${project.title} live website`}
           aria-hidden={hidden}
           tabIndex={hidden ? -1 : 0}
-          className={`group fixed bottom-[4.5svh] left-[3.5vw] z-[88] inline-flex items-center gap-4 text-[#ece9e4] opacity-0 max-md:bottom-[5svh] max-md:left-[5vw] ${
-            hidden
-              ? "pointer-events-none"
-              : "pointer-events-auto cursor-pointer"
-          }`}
+          className={`
+            group
+            fixed
+            bottom-[4.5svh]
+            left-[3.5vw]
+            z-[88]
+            inline-flex
+            items-center
+            gap-4
+            text-[#ece9e4]
+            opacity-0
+            max-md:bottom-[5svh]
+            max-md:left-[5vw]
+            ${
+              hidden
+                ? "pointer-events-none"
+                : "pointer-events-auto cursor-pointer"
+            }
+          `}
         >
-          <span className="text-[16px] font-medium leading-none tracking-[-0.01em]">
+          <span
+            className="
+              text-[20px]
+              font-semibold
+              leading-none
+              tracking-[-0.01em]
+text-[clamp(16px,1.1vw,21px)]            "
+          >
             View live project
           </span>
 
           <svg
-            width="22"
-            height="22"
+            width="26"
+            height="26"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -376,7 +236,14 @@ left-[60%]
             strokeLinecap="round"
             strokeLinejoin="round"
             aria-hidden="true"
-            className="shrink-0 transition-transform duration-300 ease-out group-hover:translate-x-[3px] group-hover:-translate-y-[3px]"
+            className="
+              shrink-0
+              transition-transform
+              duration-300
+              ease-out
+              group-hover:translate-x-[3px]
+              group-hover:-translate-y-[3px]
+            "
           >
             <path d="M5 19L19 5" />
             <path d="M9 5H19V15" />

@@ -59,10 +59,10 @@ const THUMB_OFFSET_Y = 22;
 const MAIN_WIDTH = 0.43;
 const MAIN_HEIGHT = 0.71;
 
-const THUMB_MAX_WIDTH = 0.155;
-const THUMB_TOTAL_HEIGHT = 0.64;
-const THUMB_GAP = 0.016;
-const THUMB_RIGHT = 0.945;
+const THUMB_MAX_WIDTH = 0.12;
+const THUMB_TOTAL_HEIGHT = 0.52;
+const THUMB_GAP = 0.012;
+const THUMB_RIGHT = 0.93;
 
 function getRect(
   size: ScreenSize,
