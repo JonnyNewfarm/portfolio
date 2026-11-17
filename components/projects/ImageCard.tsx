@@ -4,7 +4,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useTexture } from "@react-three/drei";
 import { useEffect, useMemo, useRef, type MutableRefObject } from "react";
 import * as THREE from "three";
-import { PROJECTS } from "@/lib/projects";
+import type { Project } from "@/sanity/getProjects";
 import {
   CARD_WIDTH,
   REST_YAW,
@@ -24,6 +24,7 @@ import {
 } from "./projectShared";
 
 export default function ImageCard({
+  projects,
   index,
   selected,
   hovered,
@@ -35,6 +36,7 @@ export default function ImageCard({
   titles,
   closing,
 }: {
+  projects: Project[];
   index: number;
   selected: number | null;
   hovered: string | null;
@@ -47,7 +49,7 @@ export default function ImageCard({
   closing: MutableRefObject<boolean>;
 }) {
   const id = `cover-${index}`;
-  const texture = useTexture(PROJECTS[index].images[0]);
+  const texture = useTexture(projects[index].images[0]);
   const { camera, size, gl } = useThree();
   const group = useRef<THREE.Group>(null);
   const photo = useRef<THREE.Mesh>(null);
@@ -76,8 +78,7 @@ export default function ImageCard({
   const homeX = mobile ? (index === 0 ? -1.25 : 0.95) : config.x;
   const restYaw = 0;
   const image = texture.image as
-    | { width?: number; height?: number }
-    | undefined;
+    { width?: number; height?: number } | undefined;
   const aspect =
     image?.width && image?.height ? image.width / image.height : 2 / 3;
   const width = mobile ? 3.45 : CARD_WIDTH;

@@ -4,6 +4,7 @@ import { Suspense, useLayoutEffect, type MutableRefObject } from "react";
 import { useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import ImageCard from "./ImageCard";
+import type { Project } from "@/sanity/getProjects";
 import type {
   Rect,
   CameraMap,
@@ -61,6 +62,7 @@ function AnchorCamera({
 }
 
 export default function ProjectScene({
+  projects,
   anchor,
   index,
   cameras,
@@ -74,6 +76,7 @@ export default function ProjectScene({
   titles,
   closing,
 }: {
+  projects: Project[];
   anchor: Rect;
   index: number;
   cameras: CameraMap;
@@ -93,6 +96,7 @@ export default function ProjectScene({
 
       <Suspense fallback={null}>
         <ImageCard
+          projects={projects}
           index={index}
           selected={selected}
           hovered={hovered}

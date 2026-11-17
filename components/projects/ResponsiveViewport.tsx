@@ -1,14 +1,16 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
+import type { Project } from "@/sanity/getProjects";
 
 import MobilePortfolio from "./MobilePortfolio";
 
-export default function ResponsiveViewport({
-  children,
-}: {
+type Props = {
   children: ReactNode;
-}) {
+  projects: Project[];
+};
+
+export default function ResponsiveViewport({ children, projects }: Props) {
   const [isMobile, setIsMobile] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -32,7 +34,7 @@ export default function ResponsiveViewport({
   }
 
   if (isMobile) {
-    return <MobilePortfolio />;
+    return <MobilePortfolio projects={projects} />;
   }
 
   return <>{children}</>;

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { PROJECTS } from "@/lib/projects";
+import type { Project } from "@/sanity/getProjects";
 import SmoothScroll from "../services/ServicesSmoothScroll";
 
 const LINKEDIN_URL = "https://www.linkedin.com/in/jonas-nygaard-0aa767366";
@@ -33,7 +33,7 @@ function MobilePortrait() {
   );
 }
 
-function MobileHome() {
+function MobileHome({ projects }: { projects: Project[] }) {
   return (
     <main className="min-h-svh overflow-x-hidden">
       <section className="px-[5vw] pt-[clamp(80px,11svh,140px)]">
@@ -59,12 +59,12 @@ function MobileHome() {
       >
         <div className="mb-8 flex items-center justify-between pb-4">
           <h2 className="font-bueno text-[18px] font-bold uppercase">
-            SELECTED WORK / 02
+            SELECTED WORK / {String(projects.length).padStart(2, "0")}
           </h2>
         </div>
 
         <div className="flex flex-col gap-16">
-          {PROJECTS.slice(0, 2).map((project, index) => (
+          {projects.map((project, index) => (
             <Link
               key={project.slug}
               href={`/projects/${project.slug}`}
@@ -140,8 +140,13 @@ function MobileHome() {
   );
 }
 
-function MobileProjectDetail({ index }: { index: number }) {
-  const project = PROJECTS[index];
+function MobileProjectDetail({
+  project,
+  index,
+}: {
+  project: Project;
+  index: number;
+}) {
   const [navVisible, setNavVisible] = useState(true);
 
   useEffect(() => {
@@ -321,14 +326,14 @@ function MobileProjectDetail({ index }: { index: number }) {
   );
 }
 
-export default function MobilePortfolio() {
+export default function MobilePortfolio({ projects }: { projects: Project[] }) {
   const pathname = usePathname();
 
   const slug = pathname.startsWith("/projects/")
     ? pathname.split("/")[2]
     : null;
 
-  const projectIndex = PROJECTS.findIndex((project) => project.slug === slug);
+  const projectIndex = projects.findIndex((project) => project.slug === slug);
 
   useEffect(() => {
     if (projectIndex >= 0) {
@@ -339,9 +344,12 @@ export default function MobilePortfolio() {
   return (
     <SmoothScroll>
       {projectIndex >= 0 ? (
-        <MobileProjectDetail index={projectIndex} />
+        <MobileProjectDetail
+          project={projects[projectIndex]}
+          index={projectIndex}
+        />
       ) : (
-        <MobileHome />
+        <MobileHome projects={projects} />
       )}
     </SmoothScroll>
   );

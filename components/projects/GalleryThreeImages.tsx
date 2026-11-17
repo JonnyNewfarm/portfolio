@@ -14,7 +14,7 @@ import {
 } from "react";
 import * as THREE from "three";
 
-import { PROJECTS } from "@/lib/projects";
+import type { Project } from "@/sanity/getProjects";
 import type { ProgressRef, ScrollControl } from "./projectShared";
 
 type FocusRef = MutableRefObject<{
@@ -35,6 +35,7 @@ type ImageRect = {
 };
 
 type Props = {
+  projects: Project[];
   index: number;
   firstTarget: MutableRefObject<HTMLDivElement | null>;
   handoff: ProgressRef;
@@ -235,8 +236,7 @@ function GalleryPlane({
 
   const aspect = useMemo(() => {
     const image = texture.image as
-      | { width?: number; height?: number }
-      | undefined;
+      { width?: number; height?: number } | undefined;
 
     return image?.width && image?.height ? image.width / image.height : 1;
   }, [texture]);
@@ -475,6 +475,7 @@ function GalleryPlane({
 }
 
 export default function GalleryThreeImages({
+  projects,
   index,
   firstTarget,
   handoff,
@@ -483,7 +484,10 @@ export default function GalleryThreeImages({
   onReady,
   hitTestRef,
 }: Props) {
-  const sources = useMemo(() => PROJECTS[index].images.slice(0, 5), [index]);
+  const sources = useMemo(
+    () => projects[index]?.images.slice(0, 5) ?? [],
+    [projects, index],
+  );
 
   const [activeImage, setActiveImage] = useState(0);
   const activeRef = useRef(0);

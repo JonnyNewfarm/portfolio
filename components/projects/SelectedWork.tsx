@@ -12,7 +12,7 @@ import {
   Suspense,
 } from "react";
 import * as THREE from "three";
-import { PROJECTS } from "@/lib/projects";
+import type { Project } from "@/sanity/getProjects";
 import ProjectDetailsInfo from "./ProjectDetailsInfo";
 import {
   TRANSITION_DURATION,
@@ -27,14 +27,13 @@ import GalleryThreeImages from "./GalleryThreeImages";
 import ProjectScene from "./ProjectScene";
 import ProjectCursor from "./ProjectCursor";
 const HISTORY_KEY = "__portfolioProjectOpened";
-const OPENING_WARMUP_MS = 170;
-function getProjectIndex(pathname: string) {
+function getProjectIndex(pathname: string, projects: Project[]) {
   const match = pathname.match(/^\/projects\/([^/]+)\/?$/);
   if (!match) return -1;
-  return PROJECTS.findIndex((project) => project.slug === match[1]);
+  return projects.findIndex((project) => project.slug === match[1]);
 }
-function getProjectPath(index: number) {
-  return `/projects/${PROJECTS[index].slug}`;
+function getProjectPath(index: number, projects: Project[]) {
+  return `/projects/${projects[index].slug}`;
 }
 function wasOpenedFromHomepage() {
   const state = window.history.state as Record<string, unknown> | null;
@@ -42,23 +41,19 @@ function wasOpenedFromHomepage() {
 }
 function MyWorkText({ visible }: { visible: boolean }) {
   const [color, setColor] = useState("#211f1e");
-
   useEffect(() => {
     const root = document.documentElement;
     const update = () => {
       setColor(root.dataset.theme === "dark" ? "#e7e3dd" : "#211f1e");
     };
-
     update();
     const observer = new MutationObserver(update);
     observer.observe(root, {
       attributes: true,
       attributeFilter: ["data-theme"],
     });
-
     return () => observer.disconnect();
   }, []);
-
   return (
     <Text
       visible={visible}
@@ -77,25 +72,25 @@ function MyWorkText({ visible }: { visible: boolean }) {
     </Text>
   );
 }
-
-export default function SelectedWork() {
+type SelectedWorkProps = {
+  projects: Project[];
+};
+export default function SelectedWork({ projects }: SelectedWorkProps) {
   const router = useRouter();
   useEffect(() => {
     const preload = () => {
-      PROJECTS.slice(0, 2).forEach((project) => {
+      projects.slice(0, 2).forEach((project) => {
         project.images.slice(1, 5).forEach((src) => {
           useTexture.preload(src);
         });
       });
     };
-
     const timeout = window.setTimeout(preload, 500);
-
     return () => window.clearTimeout(timeout);
   }, []);
   const initialSlug = useInitialProjectSlug();
   const initialIndex = initialSlug
-    ? PROJECTS.findIndex((project) => project.slug === initialSlug)
+    ? projects.findIndex((project) => project.slug === initialSlug)
     : -1;
   const initialSelected = initialIndex >= 0 ? initialIndex : null;
   const directProject = initialSelected !== null;
@@ -266,7 +261,7 @@ export default function SelectedWork() {
       if (selectedRef.current !== null || closing.current) {
         return;
       }
-      const project = PROJECTS[index];
+      const project = projects[index];
       if (!project) return;
       tween.current?.kill();
       handoffTween.current?.kill();
@@ -284,7 +279,7 @@ export default function SelectedWork() {
       selectedRef.current = index;
       setSelected(index);
       if (!fromHistory) {
-        const path = getProjectPath(index);
+        const path = getProjectPath(index, projects);
         if (window.location.pathname !== path) {
           window.history.pushState(
             {
@@ -296,7 +291,7 @@ export default function SelectedWork() {
         }
       }
     },
-    [onHover, resetGalleryFocus],
+    [onHover, resetGalleryFocus, projects],
   );
   const closeImage = useCallback(
     (fromHistory = false) => {
@@ -307,7 +302,8 @@ export default function SelectedWork() {
       openingFinished.current = false;
       let navigateHomeAfterClose = false;
       if (!fromHistory) {
-        const isProjectRoute = getProjectIndex(window.location.pathname) !== -1;
+        const isProjectRoute =
+          getProjectIndex(window.location.pathname, projects) !== -1;
         if (isProjectRoute) {
           if (wasOpenedFromHomepage()) {
             window.history.back();
@@ -358,12 +354,12 @@ export default function SelectedWork() {
         reverse();
       }
     },
-    [scrollAllowed, onHover, resetGalleryFocus, router],
+    [scrollAllowed, onHover, resetGalleryFocus, router, projects],
   );
   useEffect(() => {
     if (!anchorReady) return;
     const handlePopState = () => {
-      const routeIndex = getProjectIndex(window.location.pathname);
+      const routeIndex = getProjectIndex(window.location.pathname, projects);
       if (routeIndex === -1) {
         if (selectedRef.current !== null && !closing.current) {
           closeImage(true);
@@ -378,7 +374,7 @@ export default function SelectedWork() {
     return () => {
       window.removeEventListener("popstate", handlePopState);
     };
-  }, [anchorReady, openImage, closeImage]);
+  }, [anchorReady, openImage, closeImage, projects]);
   useLayoutEffect(() => {
     if (selected === null || closing.current) return;
     if (progress.current.value > 0 || tween.current?.isActive()) return;
@@ -499,6 +495,7 @@ export default function SelectedWork() {
       />
       {selected !== null && (
         <GalleryThreeImages
+          projects={projects}
           index={selected}
           firstTarget={firstTarget}
           handoff={handoff}
@@ -513,7 +510,7 @@ export default function SelectedWork() {
       )}
       {selected !== null && (
         <ProjectDetailsInfo
-          project={PROJECTS[selected]}
+          project={projects[selected]}
           reversing={reversing}
           focused={isGalleryFocused}
           ready={scrollAllowed}
@@ -535,7 +532,7 @@ export default function SelectedWork() {
         <ProjectCursor
           focused={isGalleryFocused}
           disabled={returning || reversing}
-          websiteUrl={PROJECTS[selected].liveUrl}
+          websiteUrl={projects[selected].liveUrl}
           isOverImage={galleryHitTest}
           onCloseProject={() => closeImage()}
           onCloseFocus={onUnfocusImage}
@@ -551,7 +548,7 @@ export default function SelectedWork() {
         onClickImage={openImage}
       />
       {homeRect &&
-        PROJECTS.slice(0, 2).map((project, index) => (
+        projects.slice(0, 2).map((project, index) => (
           <div
             key={project.slug}
             aria-hidden="true"
@@ -589,6 +586,7 @@ export default function SelectedWork() {
               }}
             >
               <ProjectScene
+                projects={projects}
                 anchor={homeRect}
                 index={index}
                 cameras={cameras}
@@ -614,7 +612,7 @@ export default function SelectedWork() {
         aria-hidden="true"
         className="pointer-events-none fixed inset-0 z-[85]"
       >
-        {PROJECTS.slice(0, 2).map((project, index) => (
+        {projects.slice(0, 2).map((project, index) => (
           <div
             key={project.slug}
             ref={(node) => {
