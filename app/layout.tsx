@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { GoogleTagManager } from "@next/third-parties/google";
+
 import "./globals.css";
 import NavbarLayer from "@/components/NavbarLayer";
 import PortfolioShell from "@/components/PortfolioShell";
@@ -48,8 +50,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body>
-        {" "}
         <PortfolioShell>{children}</PortfolioShell>
+
+        <GoogleTagManager gtmId="GTM-NX4HM8MZ" />
       </body>
     </html>
   );

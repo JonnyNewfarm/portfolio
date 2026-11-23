@@ -64,9 +64,11 @@ export default function Navbar() {
   };
 
   const copyEmail = async () => {
+    let success = false;
+
     try {
       await navigator.clipboard.writeText(EMAIL);
-      setCopied(true);
+      success = true;
     } catch {
       const textarea = document.createElement("textarea");
 
@@ -77,10 +79,20 @@ export default function Navbar() {
       document.body.appendChild(textarea);
       textarea.select();
 
-      const success = document.execCommand("copy");
+      success = document.execCommand("copy");
 
       textarea.remove();
-      setCopied(success);
+    }
+
+    setCopied(success);
+
+    if (success) {
+      window.dataLayer = window.dataLayer || [];
+
+      window.dataLayer.push({
+        event: "email_copy",
+        contact_method: "email",
+      });
     }
   };
 

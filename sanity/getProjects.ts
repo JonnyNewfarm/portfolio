@@ -51,3 +51,4 @@ export async function getProjects(): Promise<Project[]> {
     number: String(index + 1).padStart(2, "0"),
   }));
 }
+
