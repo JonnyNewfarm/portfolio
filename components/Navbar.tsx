@@ -28,7 +28,7 @@ function IntroText({ children }: { children: ReactNode }) {
 export default function Navbar() {
   const pathname = usePathname();
 
-  const [theme, setTheme] = useState<Theme>("light");
+  const [theme, setTheme] = useState<Theme | null>(null);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -56,11 +56,10 @@ export default function Navbar() {
   }, [copied]);
 
   const changeTheme = (nextTheme: Theme) => {
-    setTheme(nextTheme);
-
     document.documentElement.dataset.theme = nextTheme;
-
     localStorage.setItem("theme", nextTheme);
+
+    setTheme(nextTheme);
   };
 
   const copyEmail = async () => {
@@ -160,17 +159,16 @@ export default function Navbar() {
             <button
               type="button"
               onClick={() => changeTheme("light")}
-              aria-pressed={theme === "light"}
-              className={`
+              aria-pressed={theme === null ? undefined : theme === "light"}
+              className="
                 cursor-pointer
+                opacity-35
                 transition-opacity
                 duration-300
-                ${
-                  theme === "light"
-                    ? "opacity-100"
-                    : "opacity-35 hover:opacity-70"
-                }
-              `}
+                hover:opacity-70
+                [html[data-theme=light]_&]:opacity-100
+                [html[data-theme=light]_&]:hover:opacity-100
+              "
             >
               LIGHT
             </button>
@@ -180,17 +178,16 @@ export default function Navbar() {
             <button
               type="button"
               onClick={() => changeTheme("dark")}
-              aria-pressed={theme === "dark"}
-              className={`
+              aria-pressed={theme === null ? undefined : theme === "dark"}
+              className="
                 cursor-pointer
+                opacity-35
                 transition-opacity
                 duration-300
-                ${
-                  theme === "dark"
-                    ? "opacity-100"
-                    : "opacity-35 hover:opacity-70"
-                }
-              `}
+                hover:opacity-70
+                [html[data-theme=dark]_&]:opacity-100
+                [html[data-theme=dark]_&]:hover:opacity-100
+              "
             >
               DARK
             </button>
