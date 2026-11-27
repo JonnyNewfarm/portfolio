@@ -71,14 +71,14 @@ export default function BottomMeta() {
       "
     >
       <IntroText>
-        <span className="hidden lg:block">Location / Oslo, Norway</span>
+        <span className="hidden lg:block"> Oslo, Norway</span>
       </IntroText>
 
       <IntroText>
-        LOCAL TIME / {localTime} ({timeZone})
+        {localTime} ({timeZone})
       </IntroText>
 
-      <IntroText>PORTFOLIO / 2026</IntroText>
+      <IntroText>PORTFOLIO 2026</IntroText>
     </div>
   );
 }

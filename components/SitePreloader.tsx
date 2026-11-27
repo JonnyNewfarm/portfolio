@@ -133,11 +133,11 @@ function findTargets(root: HTMLElement): IntroTargets {
     covers,
     nameTarget:
       navTexts.find((element) =>
-        element.textContent?.trim().startsWith("NAME /"),
+        element.textContent?.trim().startsWith("JONAS"),
       ) ?? null,
     portfolioTarget:
       metaTexts.find(
-        (element) => element.textContent?.trim() === "PORTFOLIO / 2026",
+        (element) => element.textContent?.trim() === "PORTFOLIO 2026",
       ) ?? null,
   };
 }
@@ -1048,7 +1048,7 @@ export default function SitePreloader({ children, entryPath }: Props) {
               color: theme === "dark" ? "#e7e3dd" : "#211f1e",
             }}
           >
-            NAME / JONAS NYGAARD
+            JONAS NYGAARD
           </span>
 
           <span
@@ -1074,7 +1074,7 @@ export default function SitePreloader({ children, entryPath }: Props) {
               color: theme === "dark" ? "#e7e3dd" : "#211f1e",
             }}
           >
-            PORTFOLIO / 2026
+            PORTFOLIO 2026
           </span>
         </>
       )}

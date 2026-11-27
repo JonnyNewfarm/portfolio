@@ -137,7 +137,7 @@ export default function Navbar() {
           "
         >
           <IntroText>
-            <span className="hidden sm:inline">NAME / JONAS NYGAARD</span>
+            <span className="hidden sm:inline">JONAS NYGAARD</span>
 
             <span className="sm:hidden">JONAS NYGAARD</span>
           </IntroText>

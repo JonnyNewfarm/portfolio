@@ -7,13 +7,16 @@ type CursorMode =
   | "close-project"
   | "website-near"
   | "website"
+  | "thumbnail"
   | "focus"
   | "close-focus";
 type Props = {
   focused: boolean;
   disabled: boolean;
   websiteUrl: string;
-  isOverImage: MutableRefObject<((x: number, y: number) => boolean) | null>;
+  isOverImage: MutableRefObject<
+    ((x: number, y: number) => "main" | "thumbnail" | null) | null
+  >;
   onCloseProject: () => void;
   onCloseFocus: () => void;
 };
@@ -29,6 +32,7 @@ const LABELS: Record<CursorMode, string> = {
   "close-project": "RETURN",
   "website-near": "",
   website: "",
+  thumbnail: "",
   focus: "CHANGE IMAGE",
   "close-focus": "CLOSE",
 };
@@ -190,7 +194,13 @@ export default function ProjectCursor({
         }
       }
 
-      if (latest.current.isOverImage.current?.(x, y)) {
+      const imageHit = latest.current.isOverImage.current?.(x, y);
+
+      if (imageHit === "thumbnail") {
+        return "thumbnail";
+      }
+
+      if (imageHit === "main") {
         return "focus";
       }
 
@@ -404,6 +414,7 @@ export default function ProjectCursor({
           latest.current.onCloseFocus();
           break;
 
+        case "thumbnail":
         case "focus":
           break;
       }
@@ -513,7 +524,9 @@ export default function ProjectCursor({
                 ref={textRef}
                 className="block whitespace-nowrap font-sans text-[14px] font-semibold uppercase leading-none tracking-[0.11em] text-white will-change-transform"
               >
-                {mode === "website" || mode === "website-near" ? (
+                {mode === "website" ||
+                mode === "website-near" ||
+                mode === "thumbnail" ? (
                   <span className="block h-[11px] w-[11px] bg-white" />
                 ) : (
                   LABELS[mode]

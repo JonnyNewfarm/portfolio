@@ -45,7 +45,9 @@ type Props = {
   onReady: () => void;
   onFocusImage: (key: string) => void;
   onUnfocusImage: () => void;
-  hitTestRef: MutableRefObject<((x: number, y: number) => boolean) | null>;
+  hitTestRef: MutableRefObject<
+    ((x: number, y: number) => "main" | "thumbnail" | null) | null
+  >;
 };
 
 const MOVE_SPEED = 6;
@@ -579,11 +581,25 @@ export default function GalleryThreeImages({
   }, [scrollControl, selectImage]);
 
   useEffect(() => {
-    hitTestRef.current = (x, y) =>
-      interactive &&
-      Array.from(hitRects.current.values()).some((rect) =>
-        contains(rect, x, y),
-      );
+    hitTestRef.current = (x, y) => {
+      if (!interactive) return null;
+
+      const mainRect = hitRects.current.get(activeRef.current);
+
+      if (mainRect && contains(mainRect, x, y)) {
+        return "main";
+      }
+
+      for (const [imageIndex, rect] of hitRects.current) {
+        if (imageIndex === activeRef.current) continue;
+
+        if (contains(rect, x, y)) {
+          return "thumbnail";
+        }
+      }
+
+      return null;
+    };
 
     return () => {
       hitTestRef.current = null;

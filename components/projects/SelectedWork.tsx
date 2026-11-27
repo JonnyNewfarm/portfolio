@@ -129,9 +129,9 @@ export default function SelectedWork({ projects }: SelectedWorkProps) {
   const scrollControl = useRef<ScrollControl | null>(null);
   const firstTarget = useRef<HTMLDivElement>(null);
   // Real-time hit area for the centered Three.js gallery.
-  const galleryHitTest = useRef<((x: number, y: number) => boolean) | null>(
-    null,
-  );
+  const galleryHitTest = useRef<
+    ((x: number, y: number) => "main" | "thumbnail" | null) | null
+  >(null);
   const titleNodes = useRef(new Map<number, HTMLDivElement | null>());
   const titleWasFocused = useRef(false);
   const closing = useRef(false);

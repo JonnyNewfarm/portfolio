@@ -538,7 +538,7 @@ export default function PortraitCard() {
         max-md:right-[5vw]
         max-md:w-[min(40vw,170px)]
 
-        ${isProjectOpen ? "pointer-events-none" : "cursor-pointer"}
+      pointer-events-none
       `}
     >
       <div className="pointer-events-none absolute inset-0">
